@@ -25,6 +25,7 @@ import cn.nukkit.plugin.PluginFailure;
 import cn.nukkit.scheduler.AsyncTask;
 import cn.nukkit.scheduler.PluginTask;
 import cn.nukkit.utils.PlayerName;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,14 +33,17 @@ import java.util.IdentityHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Semaphore;
 
 /** Autenticacao local; nenhuma permissao administrativa dispensa o login. */
 public final class GoldAuth extends PluginBase implements Listener, AuthService {
     private enum Mode { REGISTER, LOGIN, CHANGE }
     private final Map<Player, Session> sessions = new IdentityHashMap<>();
     private final Map<String, AttemptWindow> attempts = new HashMap<>();
-    private final Semaphore hashSlots = new Semaphore(2);
+    /** Hashes em paralelo; o resto espera numa fila curta em vez de falhar no pico de logins. */
+    private static final int MAX_PARALLEL_HASHES = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
+    private static final int MAX_QUEUED_HASHES = 64;
+    private final ArrayDeque<Runnable> pendingHashes = new ArrayDeque<>();
+    private int activeHashes;
     private CoreService core;
     private Thread mainThread;
 
@@ -73,6 +77,7 @@ public final class GoldAuth extends PluginBase implements Listener, AuthService 
         }
         this.sessions.clear();
         this.attempts.clear();
+        this.pendingHashes.clear();
     }
 
     private void requireMainThread() {
@@ -147,10 +152,12 @@ public final class GoldAuth extends PluginBase implements Listener, AuthService 
                 window = new AttemptWindow(now);
                 this.attempts.put(player.getAddress(), window);
             }
-            if (!window.acquire(now)) { return reject(player, "Limite de tentativas deste IP atingido. Aguarde um minuto."); }
-            return hash(password, replacement, session.passwordHash, mode).thenCompose(answer -> {
+            if (!window.allowed(now)) { return reject(player, "Muitas senhas erradas deste IP. Aguarde um minuto."); }
+            final AttemptWindow ipWindow = window;
+            return hash(player, password, replacement, session.passwordHash, mode).thenCompose(answer -> {
                 if (!current(session)) { return CompletableFuture.completedFuture(false); }
                 if (!answer.matches) {
+                    ipWindow.fail(System.nanoTime());
                     player.sendMessage("Senha incorreta.");
                     if (++session.failures >= 5) { player.close("", "Limite de senhas incorretas atingido."); }
                     return CompletableFuture.completedFuture(false);
@@ -176,26 +183,36 @@ public final class GoldAuth extends PluginBase implements Listener, AuthService 
         });
     }
 
-    private CompletableFuture<HashAnswer> hash(char[] password, char[] replacement, String encoded, Mode mode) {
+    private CompletableFuture<HashAnswer> hash(Player player, char[] password, char[] replacement, String encoded, Mode mode) {
         CompletableFuture<HashAnswer> result = new CompletableFuture<>();
-        if (!this.hashSlots.tryAcquire()) {
-            result.completeExceptionally(new IllegalStateException("Verificadores de senha ocupados."));
-            return result;
+        Runnable start = () -> {
+            ++this.activeHashes;
+            getServer().getScheduler().executeAsyncTask(new AsyncTask() {
+                private HashAnswer answer;
+                private Throwable error;
+                @Override public void onRun() {
+                    try {
+                        boolean matches = mode == Mode.REGISTER || PasswordHasher.verify(password, encoded);
+                        this.answer = new HashAnswer(matches, matches && mode != Mode.LOGIN ? PasswordHasher.hash(mode == Mode.CHANGE ? replacement : password) : null);
+                    } catch (Throwable failure) { PluginFailure.rethrowIfFatal(failure); this.error = failure; }
+                }
+                @Override public void onCompletion(Server server) {
+                    // Roda na thread principal: libera a vaga e chama o proximo da fila.
+                    --activeHashes;
+                    Runnable next = pendingHashes.poll();
+                    if (next != null) { next.run(); }
+                    if (this.error == null) { result.complete(this.answer); } else { result.completeExceptionally(this.error); }
+                }
+            });
+        };
+        if (this.activeHashes < MAX_PARALLEL_HASHES) {
+            start.run();
+        } else if (this.pendingHashes.size() < MAX_QUEUED_HASHES) {
+            this.pendingHashes.add(start);
+            player.sendMessage("Verificando sua senha, aguarde alguns segundos...");
+        } else {
+            result.completeExceptionally(new IllegalStateException("Fila de verificacao de senhas cheia."));
         }
-        getServer().getScheduler().executeAsyncTask(new AsyncTask() {
-            private HashAnswer answer;
-            private Throwable error;
-            @Override public void onRun() {
-                try {
-                    boolean matches = mode == Mode.REGISTER || PasswordHasher.verify(password, encoded);
-                    this.answer = new HashAnswer(matches, matches && mode != Mode.LOGIN ? PasswordHasher.hash(mode == Mode.CHANGE ? replacement : password) : null);
-                } catch (Throwable failure) { PluginFailure.rethrowIfFatal(failure); this.error = failure; }
-                finally { hashSlots.release(); }
-            }
-            @Override public void onCompletion(Server server) {
-                if (this.error == null) { result.complete(this.answer); } else { result.completeExceptionally(this.error); }
-            }
-        });
         return result;
     }
 
