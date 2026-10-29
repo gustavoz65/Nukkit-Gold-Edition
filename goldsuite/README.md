@@ -46,9 +46,9 @@ A fila serial é limitada a 1.024 operações pendentes e processa lotes de até
 
 ## Itens especiais
 
-`getItemSigner().sign(item, "goldcrates:chave")` devolve uma cópia assinada. `verify(item, finalidade)` verifica uma HMAC-SHA256 sobre ID, dano/metadado, quantidade e NBT canônico. A comparação é constante em tempo para assinaturas do mesmo tamanho; um nome visual sozinho não autoriza efeitos especiais.
+`getItemSigner().sign(item, "goldcrates:chave")` devolve uma cópia assinada. `verify(item, finalidade)` verifica uma HMAC-SHA256 sobre ID, metadado e NBT canônico. A quantidade fica fora, para que pilhas assinadas possam ser divididas e juntadas; em itens com durabilidade o desgaste também fica fora, senão uma espada assinada deixaria de valer no primeiro golpe. A comparação é constante em tempo para assinaturas do mesmo tamanho; um nome visual sozinho não autoriza efeitos especiais.
 
-Alterar quantidade, dano ou NBT exige gerar uma nova assinatura no servidor. A assinatura impede adulteração dos dados assinados, mas não identifica cada exemplar como um item único nem substitui a conservação de itens do core. O trânsito desses itens pelo cliente MCPE real ainda precisa ser testado.
+Alterar o ID, o metadado de itens sem durabilidade ou o NBT exige gerar uma nova assinatura no servidor. Quem precisa limitar a quantidade (uma chave por jogador, por exemplo) deve conferir o count no próprio plugin. A assinatura impede adulteração dos dados assinados, mas não identifica cada exemplar como um item único nem substitui a conservação de itens do core. O trânsito desses itens pelo cliente MCPE real ainda precisa ser testado.
 
 ## Testes realizados
 

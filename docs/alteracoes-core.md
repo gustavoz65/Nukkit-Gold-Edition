@@ -39,15 +39,40 @@ O teste do GoldAuth expôs outro defeito antigo: tarefas não recebiam seu TaskH
 
 ## Mobs e spawners
 
-Foram adicionados zumbi (32), esqueleto (34) e aranha (35), com perseguição simples, colisões e ataques por eventos; o esqueleto lança flechas. O creeper existente ganhou comportamento de aproximação e explosão cancelável. Os registros e as dimensões podem ser usados pelas spawn eggs já existentes no core.
+Zumbi (32), esqueleto (34), aranha (35) e creeper (33) compartilham a IA de `EntityMob`. Para comparação: no Genisys 0.15 o `onUpdate` do zumbi retornava antes de executar a IA, e os cores PHP da época deixavam os mobs parados. A IA atual faz:
 
-O spawn natural faz no máximo oito tentativas por mundo a cada 200 ticks, em chunks já carregados, a pelo menos 24 blocos dos jogadores, respeitando luz, dificuldade, `spawn-mobs` e `spawn-limits.monsters`. A primeira implementação usa a superfície dos chunks; não implementa a distribuição completa de cavernas do jogo original.
+| Comportamento | Detalhe |
+| --- | --- |
+| Alvo | Jogador vivo, sobrevivência ou aventura, até 16 blocos e com linha de visão para escolher um alvo novo. Quem ataca o mob vira alvo por 10 segundos, mesmo sem visão |
+| Knockback | O mob não sobrescreve a velocidade enquanto está no tempo de dano; fricção 0,6 no chão e 0,91 no ar |
+| Movimento | Pulo de 0,42 ao bater num bloco com espaço acima; a aranha escala paredes; mobs flutuam na água e só andam em chunks carregados |
+| Desvio | Sem progresso por 1 segundo, tenta um desvio lateral por 1 segundo |
+| Vagar | Sem alvo, escolhe um ponto a até 8 blocos por 4 a 8 segundos, ou fica parado de 2 a 6 segundos; evita quedas de mais de 3 blocos, lava e fogo |
+| Sol | Zumbi e esqueleto pegam fogo de dia com céu aberto e fora da água |
+| Despawn | Some a mais de 128 blocos de todos os jogadores; entre 32 e 128, chance de 1/40 por segundo. Mobs com nome, `PersistenceRequired` ou em mundo vazio ficam |
+| Drops | Zumbi: 0–2 carne podre. Esqueleto: 0–2 ossos e 0–2 flechas. Aranha: 0–2 linhas e 1/3 de olho. Creeper: 0–2 pólvora |
 
-O spawner persiste EntityId e Delay, aceita os IDs hostis 32 a 35 e verifica jogadores a até 16 blocos uma vez por segundo. Tenta gerar até quatro mobs por rodada, com limite de seis próximos e intervalo de 200 a 800 ticks. `CreatureSpawnEvent` permite cancelar o spawn antes de criar a entidade. Colocar o bloco cria seu block entity; uma spawn egg compatível muda o tipo.
+O dano corpo a corpo segue a dificuldade (2, 3 ou 4). O esqueleto mira com compensação da queda da flecha e alguma imprecisão, e recua quando o jogador fica a menos de 4 blocos. A aranha só fica hostil no escuro (luz abaixo de 8) ou quando é atacada. O creeper arma a explosão por 1,5 segundo a até 3 blocos; a explosão pode ser cancelada por evento.
 
-Foram testados criação, atualização sem alvo, NBT, perseguição e ataque de zumbi contra jogador simulado, cancelamento de spawn e limite local do spawner. Aparência, animações, combate com cliente real, flechas em jogo e explosões no cliente permanecem sem validação visual. A IA é direta, sem navegação avançada.
+O spawn natural faz no máximo oito tentativas por mundo a cada 200 ticks, em chunks já carregados, a pelo menos 24 blocos dos jogadores, respeitando luz, dificuldade, `spawn-mobs` e `spawn-limits.monsters`. Usa a superfície dos chunks; não implementa a distribuição completa de cavernas do jogo original.
+
+O spawner persiste EntityId e Delay, aceita os IDs hostis 32 a 35 e verifica jogadores a até 16 blocos uma vez por segundo. Tenta gerar até quatro mobs por rodada, com limite de seis próximos e intervalo de 200 a 800 ticks. `CreatureSpawnEvent` permite cancelar o spawn antes de criar a entidade. Colocar o bloco cria seu block entity; uma spawn egg compatível muda o tipo. Quebrar o spawner não dropa o bloco, como no jogo original; antes, qualquer picareta permitia coletar e multiplicar spawners.
+
+Testes no servidor isolado: criação, NBT, perseguição e ataque do zumbi contra jogador simulado, knockback, despawn por distância, aranha neutra de dia e revidando após ataque, cancelamento de spawn e limite do spawner. Aparência, animação de inchar do creeper, flechas e explosões no cliente real ainda não foram verificadas.
 
 Referências dos identificadores: [zumbi no PocketMine histórico](https://github.com/pmmp/PocketMine-MP/blob/6fc435da0e0ca430558930f73042e1f9130815b7/src/pocketmine/entity/Zombie.php), [esqueleto no Nukkit](https://github.com/CloudburstMC/Nukkit/blob/master/src/main/java/cn/nukkit/entity/mob/EntitySkeleton.java) e [aranha no Nukkit](https://github.com/CloudburstMC/Nukkit/blob/master/src/main/java/cn/nukkit/entity/mob/EntitySpider.java).
+
+## Segunda revisão
+
+| Correção | Problema anterior |
+| --- | --- |
+| Quantidade da pilha validada só na transação | O decode de slot expulsava o jogador quando o count passava do `getMaxStackSize` do servidor, que divergia do cliente (cabeças empilham até 64). Agora o pacote só recusa count acima de 64 |
+| Criativo isolado | Itens com NBT não podiam ser reorganizados no criativo, e o `force` anterior executava a transação inteira em qualquer janela, o que permitia clonar itens de baús. Agora só o inventário do jogador e a armadura aceitam a troca livre, e apenas quando os dois itens existem no menu criativo |
+| Erros de rede registrados | Erros ao tratar um pacote válido eram descartados sem log. Pacote malformado continua gerando só uma linha de debug; erro interno gera log completo e encerra a sessão com mensagem própria |
+| `StackOverflowError` contido | Recursão infinita num plugin derrubava o servidor; agora é tratada como falha do plugin. `OutOfMemoryError` e as demais falhas da JVM continuam sendo propagadas |
+| Token de login nos dois alfabetos | O decode aceitava só base64url; tokens no alfabeto padrão eram recusados |
+| HMAC sem quantidade e desgaste | Itens assinados ficavam inválidos ao dividir a pilha ou ao usar a ferramenta |
+| GoldAuth por falhas | O limite contava logins corretos e bloqueava jogadores atrás do mesmo IP; no pico, o semáforo recusava logins em vez de enfileirar |
 
 ## Reproduzir os testes
 
