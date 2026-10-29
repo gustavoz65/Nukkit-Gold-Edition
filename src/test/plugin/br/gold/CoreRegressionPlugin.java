@@ -25,9 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class CoreRegressionPlugin extends PluginBase implements Listener {
     private boolean cancelar;
     private boolean cancelarSpawn;
+    private long mainThreadId;
 
     @Override
     public void onEnable() {
+        this.mainThreadId = Thread.currentThread().getId();
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getScheduler().scheduleDelayedTask(() -> {
             try {
@@ -36,7 +38,14 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarIsolamento();
                 verificarMobs();
                 verificarComportamentoMobs();
-                getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
+                verificarGoldCore().whenComplete((ignored, error) -> {
+                    if (error == null) {
+                        getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
+                    } else {
+                        getLogger().error("VERIFICACOES_INTEGRADAS_FALHARAM", error);
+                        getServer().shutdown();
+                    }
+                });
             } catch (Throwable erro) {
                 getLogger().error("VERIFICACOES_INTEGRADAS_FALHARAM", erro);
                 getServer().shutdown();
@@ -132,6 +141,27 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
         exigir(atendimentos.get() == 1, "Outro listener deixou de receber o evento.");
         exigir(getServer().dispatchCommand(getServer().getConsoleSender(), "falha_gold_teste SEGREDO_NAO_DEVE_APARECER"), "Comando com falha interrompeu o dispatcher.");
         exigir(getServer().dispatchCommand(getServer().getConsoleSender(), "list"), "Comando posterior a falha nao funcionou.");
+        AtomicInteger interfacesEncerradas = new AtomicInteger();
+        java.util.List<cn.nukkit.network.SourceInterface> interfacesComFalha = new java.util.ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            cn.nukkit.network.SourceInterface interfaceComFalha = (cn.nukkit.network.SourceInterface) Proxy.newProxyInstance(
+                    cn.nukkit.network.SourceInterface.class.getClassLoader(), new Class<?>[]{cn.nukkit.network.SourceInterface.class}, (proxy, metodo, args) -> {
+                        switch (metodo.getName()) {
+                            case "hashCode": return System.identityHashCode(proxy);
+                            case "equals": return proxy == args[0];
+                            case "process": throw new IllegalStateException("Interface de rede simulada");
+                            case "emergencyShutdown": interfacesEncerradas.incrementAndGet(); return null;
+                            default: return null;
+                        }
+                    });
+            interfacesComFalha.add(interfaceComFalha);
+            getServer().getNetwork().registerInterface(interfaceComFalha);
+        }
+        getServer().getNetwork().processInterfaces();
+        exigir(interfacesEncerradas.get() == 2, "Uma interface com falha impediu o isolamento da seguinte.");
+        for (cn.nukkit.network.SourceInterface interfaceComFalha : interfacesComFalha) {
+            exigir(!getServer().getNetwork().getInterfaces().contains(interfaceComFalha), "Interface com falha permaneceu registrada.");
+        }
         getLogger().info("FIM_FALHAS_ESPERADAS");
         getLogger().info("Isolamento: erros de dependencia em evento e comando contidos, demais chamadas preservadas.");
     }
@@ -246,6 +276,28 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
             getServer().getPluginManager().callEvent(evento);
             if (!evento.isCancelled()) { this.dano += evento.getFinalDamage(); }
         }
+    }
+
+    private java.util.concurrent.CompletableFuture<Void> verificarGoldCore() {
+        br.goldsuite.api.CoreService core = getServer().getServiceManager().load(br.goldsuite.api.CoreService.class);
+        if (core == null) { return java.util.concurrent.CompletableFuture.completedFuture(null); }
+        return core.whenReady()
+                .thenCompose(ignored -> core.getStore().put("integracao", "persistencia", "Proteção persistente"))
+                .thenCompose(ignored -> core.getStore().get("integracao", "persistencia"))
+                .thenAccept(valor -> {
+                    exigir(Thread.currentThread().getId() == this.mainThreadId, "Conclusao do armazenamento ocorreu fora da thread principal.");
+                    exigir(valor.orElse("").equals("Proteção persistente"), "Armazenamento assincrono nao preservou o valor.");
+                    Item assinado = core.getItemSigner().sign(Item.get(Item.DIAMOND), "teste:chave");
+                    exigir(core.getItemSigner().verify(assinado, "teste:chave"), "Assinatura do servico real falhou.");
+                    assinado.setCount(64);
+                    exigir(!core.getItemSigner().verify(assinado, "teste:chave"), "Servico real aceitou item adulterado.");
+                    // A escrita foi enfileirada neste tick: o desligamento precisa drena-la sem outro heartbeat.
+                    core.getStore().put("integracao", "desligamento", "gravado");
+                    getServer().getPluginManager().disablePlugin(getServer().getPluginManager().getPlugin("GoldCore"));
+                    exigir(getServer().getServiceManager().load(br.goldsuite.api.CoreService.class) == null, "GoldCore desativado permaneceu registrado.");
+                    exigir(core.getStore().get("integracao", "persistencia").isCompletedExceptionally(), "Armazenamento desativado aceitou nova operacao.");
+                    getLogger().info("GoldCore: SQLite assincrono, retorno na thread principal, HMAC e drenagem ao desativar verificados.");
+                });
     }
 
     private static final class InventarioTeste extends BaseInventory {

@@ -1,3 +1,4 @@
 # Preserva o formato de linha esperado por cada interpretador.
 *.sh text eol=lf
 *.bat text eol=crlf
+goldsuite/gradlew text eol=lf
