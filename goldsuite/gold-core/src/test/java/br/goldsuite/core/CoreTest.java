@@ -42,10 +42,18 @@ public final class CoreTest {
             if (!signer.verify(signed, "goldcrates:chave") || signer.verify(signed, "goldkits:item")) {
                 throw new AssertionError("Assinatura ou isolamento por finalidade falhou.");
             }
+            Item pilha = signed.clone();
+            pilha.setCount(64);
+            if (!signer.verify(pilha, "goldcrates:chave")) { throw new AssertionError("Item assinado deixou de valer ao empilhar."); }
+            Item variante = signed.clone();
+            variante.setDamage(1);
+            if (signer.verify(variante, "goldcrates:chave")) { throw new AssertionError("Variante adulterada foi aceita."); }
+            cn.nukkit.block.Block.init();
+            Item.init();
+            Item espada = signer.sign(Item.get(Item.DIAMOND_SWORD), "goldcrates:espada");
+            espada.setDamage(120);
+            if (!signer.verify(espada, "goldcrates:espada")) { throw new AssertionError("Espada assinada deixou de valer ao desgastar."); }
             Item forged = signed.clone();
-            forged.setCount(64);
-            if (signer.verify(forged, "goldcrates:chave")) { throw new AssertionError("Quantidade adulterada foi aceita."); }
-            forged = signed.clone();
             CompoundTag tag = (CompoundTag) forged.getNamedTag().copy();
             tag.putInt("valor", 999);
             forged.setNamedTag(tag);

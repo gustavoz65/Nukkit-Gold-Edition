@@ -16,7 +16,14 @@ import java.util.List;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/** Assina identidade, quantidade e NBT canonico; o nome visual nao concede privilegios. */
+/**
+ * Assina identidade e NBT canonico; o nome visual nao concede privilegios.
+ *
+ * <p>Quantidade e desgaste ficam fora da assinatura: dois itens assinados iguais
+ * precisam empilhar, uma pilha precisa poder ser dividida, e uma espada especial
+ * continua valida depois de usada. Clonar itens e problema do inventario (as
+ * transacoes do core), nao da assinatura.</p>
+ */
 final class HmacItemSigner implements ItemSigner {
     private static final String SIGNATURE = "GoldSuiteSignature";
     private static final String PURPOSE = "GoldSuitePurpose";
@@ -66,8 +73,8 @@ final class HmacItemSigner implements ItemSigner {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bytes);
             out.writeInt(item.getId());
-            out.writeInt(item.getDamage());
-            out.writeInt(item.getCount());
+            // Em itens com durabilidade o meta e desgaste; nos demais e a variante (ex.: cor da la).
+            out.writeInt(item.getMaxDurability() > 0 ? -1 : item.getDamage());
             writeTag(out, tag, 0);
             Mac mac = Mac.getInstance("HmacSHA256");
             mac.init(new SecretKeySpec(this.key, "HmacSHA256"));

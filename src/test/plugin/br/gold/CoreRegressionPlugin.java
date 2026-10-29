@@ -357,6 +357,8 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                     Item assinado = core.getItemSigner().sign(Item.get(Item.DIAMOND), "teste:chave");
                     exigir(core.getItemSigner().verify(assinado, "teste:chave"), "Assinatura do servico real falhou.");
                     assinado.setCount(64);
+                    exigir(core.getItemSigner().verify(assinado, "teste:chave"), "Item assinado deixou de valer ao empilhar.");
+                    assinado.setNamedTag(((cn.nukkit.nbt.tag.CompoundTag) assinado.getNamedTag().copy()).putInt("adulterado", 1));
                     exigir(!core.getItemSigner().verify(assinado, "teste:chave"), "Servico real aceitou item adulterado.");
                     getLogger().info("GoldCore: SQLite assincrono, retorno na thread principal e HMAC verificados.");
                 });
