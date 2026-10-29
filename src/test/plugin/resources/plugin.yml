@@ -1,0 +1,7 @@
+name: GoldCoreRegression
+main: br.gold.CoreRegressionPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+load: POSTWORLD
+author: gustavoz65
+description: Verificacoes isoladas do core Gold

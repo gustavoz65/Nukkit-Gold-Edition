@@ -248,23 +248,34 @@ public class BinaryStream {
     public Item getSlot() {
         short id = this.getSignedShort();
 
-        if (id <= 0) {
+        if (id == 0) {
             return Item.get(0, 0, 0);
         }
+        if (id < 0) { throw new IllegalArgumentException("Identificador de item invalido."); }
         int cnt = this.getByte();
 
         int data = this.getShort();
 
         int nbtLen = this.getLShort();
+        if (nbtLen > 16384) { throw new IllegalArgumentException("NBT do item excede 16 KiB."); }
 
         byte[] nbt = new byte[0];
         if (nbtLen > 0) {
             nbt = this.get(nbtLen);
         }
 
-        return Item.get(
-                id, data, cnt, nbt
-        );
+        Item item = Item.get(id, data, cnt, nbt);
+        if (cnt <= 0 || cnt > item.getMaxStackSize()) {
+            throw new IllegalArgumentException("Quantidade de itens na pilha invalida.");
+        }
+        if (nbtLen > 0) {
+            try {
+                cn.nukkit.nbt.NBTIO.read(nbt, java.nio.ByteOrder.LITTLE_ENDIAN);
+            } catch (java.io.IOException e) {
+                throw new IllegalArgumentException("NBT do item invalido.", e);
+            }
+        }
+        return item;
     }
 
     public void putSlot(Item item) {

@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * author: MagicDroidX
@@ -75,6 +77,11 @@ public class SimpleTransactionGroup implements TransactionGroup {
 
     protected boolean matchItems(List<Item> needItems, List<Item> haveItems) {
         for (Transaction ts : this.transactions) {
+            if (!(ts.getInventory() instanceof BaseInventory) || ts.getSlot() < 0
+                    || ts.getSlot() >= ((BaseInventory) ts.getInventory()).size
+                    || !validItem(ts.getSourceItem()) || !validItem(ts.getTargetItem())) {
+                return false;
+            }
             if (ts.getTargetItem().getId() != Item.AIR) {
                 needItems.add(ts.getTargetItem());
             }
@@ -123,27 +130,48 @@ public class SimpleTransactionGroup implements TransactionGroup {
 
     @Override
     public boolean execute(boolean force) {
-        if (this.hasExecuted || (!force && !this.canExecute())) {
+        if (this.hasExecuted || !this.matchItems(new ArrayList<>(), new ArrayList<>()) || (!force && !this.canExecute())) {
             return false;
         }
 
         InventoryTransactionEvent ev = new InventoryTransactionEvent(this);
         Server.getInstance().getPluginManager().callEvent(ev);
         if (ev.isCancelled()) {
-            for (Inventory inventory : this.inventories) {
-                if (inventory instanceof PlayerInventory) {
-                    ((PlayerInventory) inventory).sendArmorContents(this.getSource());
-                }
-                inventory.sendContents(this.getSource());
-            }
+            this.resendInventories();
             return false;
         }
 
+        Map<Transaction, Item> prepared = new LinkedHashMap<>();
         for (Transaction transaction : this.transactions) {
-            transaction.getInventory().setItem(transaction.getSlot(), transaction.getTargetItem());
+            BaseInventory inventory = (BaseInventory) transaction.getInventory();
+            Item item = inventory.prepareTransactionSlot(transaction.getSlot(), transaction.getTargetItem());
+            if (item == null || !validItem(item)) {
+                this.resendInventories();
+                return false;
+            }
+            prepared.put(transaction, item);
+        }
+        // Os listeners podem alterar os inventarios durante a preparacao.
+        if (!this.matchItems(new ArrayList<>(), new ArrayList<>()) || (!force && !this.canExecute())) {
+            this.resendInventories();
+            return false;
+        }
+        // Primeiro grava todos os slots; so depois envia notificacoes aos observadores.
+        for (Map.Entry<Transaction, Item> entry : prepared.entrySet()) {
+            Transaction transaction = entry.getKey();
+            BaseInventory inventory = (BaseInventory) transaction.getInventory();
+            Item item = entry.getValue();
+            if (item.getId() == Item.AIR || item.getCount() <= 0) {
+                inventory.slots.remove(transaction.getSlot());
+            } else {
+                inventory.slots.put(transaction.getSlot(), item.clone());
+            }
         }
 
         this.hasExecuted = true;
+        for (Transaction transaction : prepared.keySet()) {
+            transaction.getInventory().onSlotChange(transaction.getSlot(), transaction.getSourceItem());
+        }
 
         return true;
     }
@@ -151,5 +179,20 @@ public class SimpleTransactionGroup implements TransactionGroup {
     @Override
     public boolean hasExecuted() {
         return this.hasExecuted;
+    }
+
+    private static boolean validItem(Item item) {
+        return item != null && item.getCount() >= 0
+                && (item.getId() == Item.AIR || (item.getCount() > 0 && item.getCount() <= item.getMaxStackSize()));
+    }
+
+    private void resendInventories() {
+        if (this.source == null) { return; }
+        for (Inventory inventory : this.inventories) {
+            if (inventory instanceof PlayerInventory) {
+                ((PlayerInventory) inventory).sendArmorContents(this.source);
+            }
+            inventory.sendContents(this.source);
+        }
     }
 }

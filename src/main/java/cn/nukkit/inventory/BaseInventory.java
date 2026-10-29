@@ -166,6 +166,24 @@ public abstract class BaseInventory implements Inventory {
         return true;
     }
 
+    /** Prepara um slot sem modifica-lo; todas as aprovacoes precedem a gravacao. */
+    protected Item prepareTransactionSlot(int index, Item requested) {
+        if (index < 0 || index >= this.size) { return null; }
+        Item item = requested.clone();
+        if (this instanceof PlayerInventory && index >= this.getSize()) {
+            cn.nukkit.event.entity.EntityArmorChangeEvent event = new cn.nukkit.event.entity.EntityArmorChangeEvent(
+                    ((PlayerInventory) this).getHolder(), this.getItem(index), item, index);
+            Server.getInstance().getPluginManager().callEvent(event);
+            return event.isCancelled() ? null : event.getNewItem().clone();
+        }
+        if (this.getHolder() instanceof Entity) {
+            EntityInventoryChangeEvent event = new EntityInventoryChangeEvent((Entity) this.getHolder(), this.getItem(index), item, index);
+            Server.getInstance().getPluginManager().callEvent(event);
+            return event.isCancelled() ? null : event.getNewItem().clone();
+        }
+        return item;
+    }
+
     @Override
     public boolean contains(Item item) {
         int count = Math.max(1, item.getCount());

@@ -3011,9 +3011,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             break;
                         }
                         if (this.isCreative()) {
-                            if (Item.getCreativeItemIndex(containerSetSlotPacket.item) != -1) {
-                                this.inventory.setItem(containerSetSlotPacket.slot, containerSetSlotPacket.item);
-                                this.inventory.setHotbarSlotIndex(containerSetSlotPacket.slot, containerSetSlotPacket.slot); //links hotbar[packet.slot] to slots[packet.slot]
+                            if (containerSetSlotPacket.item.getId() != Item.AIR && Item.getCreativeItemIndex(containerSetSlotPacket.item) == -1) {
+                                this.inventory.sendContents(this);
+                                break;
                             }
                         }
                         transaction = new BaseTransaction(this.inventory, containerSetSlotPacket.slot, this.inventory.getItem(containerSetSlotPacket.slot), containerSetSlotPacket.item);
@@ -3025,6 +3025,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         transaction = new BaseTransaction(this.inventory, containerSetSlotPacket.slot + this.inventory.getSize(), this.inventory.getArmorItem(containerSetSlotPacket.slot), containerSetSlotPacket.item);
                     } else if (this.windowIndex.containsKey(containerSetSlotPacket.windowid)) {
                         Inventory inv = this.windowIndex.get(containerSetSlotPacket.windowid);
+                        if (containerSetSlotPacket.slot >= inv.getSize()) {
+                            inv.sendContents(this);
+                            break;
+                        }
 
                         if (!(inv instanceof AnvilInventory)) {
                             this.craftingType = CRAFTING_SMALL;
