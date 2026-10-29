@@ -68,18 +68,21 @@ public class CommandReader extends Thread implements InterruptibleThread {
                 return;
             }
             if (!line.trim().isEmpty()) {
-                Timings.serverCommandTimer.startTiming();
-                try {
-                    ServerCommandEvent event = new ServerCommandEvent(Server.getInstance().getConsoleSender(), line);
-                    Server.getInstance().getPluginManager().callEvent(event);
-                    if (!event.isCancelled()) {
-                        Server.getInstance().dispatchCommand(event.getSender(), event.getCommand());
+                // Ler stdin nao deve executar comandos de mundo na thread do console.
+                Server.getInstance().getScheduler().scheduleTask(() -> {
+                    Timings.serverCommandTimer.startTiming();
+                    try {
+                        ServerCommandEvent event = new ServerCommandEvent(Server.getInstance().getConsoleSender(), line);
+                        Server.getInstance().getPluginManager().callEvent(event);
+                        if (!event.isCancelled()) {
+                            Server.getInstance().dispatchCommand(event.getSender(), event.getCommand());
+                        }
+                    } catch (Exception e) {
+                        Server.getInstance().getLogger().logException(e);
+                    } finally {
+                        Timings.serverCommandTimer.stopTiming();
                     }
-                } catch (Exception e) {
-                    Server.getInstance().getLogger().logException(e);
-                } finally {
-                    Timings.serverCommandTimer.stopTiming();
-                }
+                });
             }
         }
     }
