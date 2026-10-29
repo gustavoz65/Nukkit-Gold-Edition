@@ -168,10 +168,19 @@ public class ServerScheduler {
     }
 
     private TaskHandler addTask(Task task, int delay, int period, boolean asynchronous) {
-        return addTask(task instanceof PluginTask ? ((PluginTask) task).getOwner() : null, () -> task.onRun(currentTick + delay), delay, period, asynchronous);
+        synchronized (task) {
+            if (task.getHandler() != null && !task.getHandler().isCancelled()) {
+                throw new PluginException("Esta tarefa ja esta agendada.");
+            }
+            return addTask(task instanceof PluginTask ? ((PluginTask) task).getOwner() : null, () -> task.onRun(currentTick), delay, period, asynchronous, task);
+        }
     }
 
     private TaskHandler addTask(Plugin plugin, Runnable task, int delay, int period, boolean asynchronous) {
+        return addTask(plugin, task, delay, period, asynchronous, null);
+    }
+
+    private TaskHandler addTask(Plugin plugin, Runnable task, int delay, int period, boolean asynchronous, Task original) {
         if (plugin != null && plugin.isDisabled()) {
             throw new PluginException("Plugin '" + plugin.getName() + "' attempted to register a task while disabled.");
         }
@@ -183,6 +192,11 @@ public class ServerScheduler {
         taskHandler.setDelay(delay);
         taskHandler.setPeriod(period);
         taskHandler.setNextRunTick(taskHandler.isDelayed() ? currentTick + taskHandler.getDelay() : currentTick);
+        if (original != null) {
+            taskHandler.setOriginalTask(original);
+            original.setHandler(null);
+            original.setHandler(taskHandler);
+        }
 
         pending.offer(taskHandler);
         taskMap.put(taskHandler.getTaskId(), taskHandler);
@@ -214,12 +228,13 @@ public class ServerScheduler {
                 }
                 taskHandler.timing.stopTiming();
             }
-            if (taskHandler.isRepeating()) {
+            if (taskHandler.isRepeating() && !taskHandler.isCancelled()) {
                 taskHandler.setNextRunTick(currentTick + taskHandler.getPeriod());
                 pending.offer(taskHandler);
             } else {
                 try {
-                    taskMap.remove(taskHandler.getTaskId()).cancel();
+                    TaskHandler removed = taskMap.remove(taskHandler.getTaskId());
+                    if (removed != null) { removed.cancel(); }
                 } catch (RuntimeException ex) {
                     Server.getInstance().getLogger().critical("Exception while invoking onCancel", ex);
                 }

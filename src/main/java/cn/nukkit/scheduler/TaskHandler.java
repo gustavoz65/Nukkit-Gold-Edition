@@ -14,6 +14,7 @@ public class TaskHandler {
 
     private final Plugin plugin;
     private final Runnable task;
+    private Task originalTask;
 
     private int delay;
     private int period;
@@ -21,7 +22,7 @@ public class TaskHandler {
     private int lastRunTick;
     private int nextRunTick;
 
-    private boolean cancelled;
+    private volatile boolean cancelled;
 
     public final Timing timing;
 
@@ -81,11 +82,22 @@ public class TaskHandler {
         this.lastRunTick = lastRunTick;
     }
 
-    public void cancel() {
-        if (!this.isCancelled() && this.task instanceof Task) {
-            ((Task) this.task).onCancel();
-        }
+    void setOriginalTask(Task task) {
+        this.originalTask = task;
+    }
+
+    public synchronized void cancel() {
+        if (this.cancelled) { return; }
+        // Marca primeiro para impedir cancelamento recursivo dentro de onCancel.
         this.cancelled = true;
+        Task callback = this.originalTask != null ? this.originalTask : this.task instanceof Task ? (Task) this.task : null;
+        if (callback != null) {
+            try { callback.onCancel(); }
+            catch (Throwable error) {
+                cn.nukkit.plugin.PluginFailure.rethrowIfFatal(error);
+                Server.getInstance().getLogger().critical("Erro ao cancelar tarefa " + this.taskId, error);
+            }
+        }
     }
 
     @Deprecated
