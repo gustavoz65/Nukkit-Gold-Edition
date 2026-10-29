@@ -223,15 +223,18 @@ public class SimpleCommandMap implements CommandMap {
         target.timing.startTiming();
         try {
             target.execute(sender, sentCommandLabel, args);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            cn.nukkit.plugin.PluginFailure.rethrowIfFatal(e);
             sender.sendMessage(new TranslationContainer(TextFormat.RED + "%commands.generic.exception"));
-            this.server.getLogger().critical(this.server.getLanguage().translateString("nukkit.command.exception", cmdLine, target.toString(), Utils.getExceptionMessage(e)));
+            // Argumentos podem conter senhas; o diagnostico identifica somente o comando.
+            this.server.getLogger().critical("Falha no comando /" + sentCommandLabel + " de " + target.getClass().getName());
             MainLogger logger = sender.getServer().getLogger();
             if (logger != null) {
                 logger.logException(e);
             }
+        } finally {
+            target.timing.stopTiming();
         }
-        target.timing.stopTiming();
 
         return true;
     }

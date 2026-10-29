@@ -53,8 +53,11 @@ public class RegisteredListener {
             }
         }
         this.timing.startTiming();
-        executor.execute(listener, event);
-        this.timing.stopTiming();
+        try {
+            executor.execute(listener, event);
+        } finally {
+            this.timing.stopTiming();
+        }
     }
 
     public boolean isIgnoringCancelled() {

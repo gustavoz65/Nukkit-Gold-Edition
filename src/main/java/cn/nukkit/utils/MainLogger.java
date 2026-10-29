@@ -96,6 +96,10 @@ public class MainLogger extends ThreadedLogger {
         this.alert(Utils.getExceptionMessage(e));
     }
 
+    public void logException(Throwable e) {
+        this.alert(Utils.getExceptionMessage(e));
+    }
+
     @Override
     public void log(LogLevel level, String message) {
         switch (level) {

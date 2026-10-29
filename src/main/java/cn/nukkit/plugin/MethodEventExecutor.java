@@ -31,10 +31,12 @@ public class MethodEventExecutor implements EventExecutor {
                 }
             }
         } catch (InvocationTargetException ex) {
+            PluginFailure.rethrowIfFatal(ex.getCause());
             throw new EventException(ex.getCause());
         } catch (ClassCastException ex) {
             // We are going to ignore ClassCastException because EntityDamageEvent can't be cast to EntityDamageByEntityEvent
         } catch (Throwable t) {
+            PluginFailure.rethrowIfFatal(t);
             throw new EventException(t);
         }
     }

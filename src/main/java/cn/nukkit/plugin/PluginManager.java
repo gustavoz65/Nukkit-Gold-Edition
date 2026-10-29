@@ -449,6 +449,7 @@ public class PluginManager {
                 }
                 plugin.getPluginLoader().enablePlugin(plugin);
             } catch (Throwable e) {
+                PluginFailure.rethrowIfFatal(e);
                 MainLogger logger = this.server.getLogger();
                 if (logger != null) {
                     logger.logException(new RuntimeException(e));
@@ -522,7 +523,8 @@ public class PluginManager {
         if (plugin.isEnabled()) {
             try {
                 plugin.getPluginLoader().disablePlugin(plugin);
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                PluginFailure.rethrowIfFatal(e);
                 MainLogger logger = this.server.getLogger();
                 if (logger != null) {
                     logger.logException(e);
@@ -557,7 +559,8 @@ public class PluginManager {
 
                 try {
                     registration.callEvent(event);
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    PluginFailure.rethrowIfFatal(e);
                     this.server.getLogger().critical(this.server.getLanguage().translateString("nukkit.plugin.eventError", new String[]{event.getEventName(), registration.getPlugin().getDescription().getFullName(), e.getMessage(), registration.getListener().getClass().getName()}));
                     this.server.getLogger().logException(e);
                 }
