@@ -108,7 +108,8 @@ try {
                 $textoPing | Set-Content (Join-Path $teste 'ping.txt') -Encoding utf8NoBOM
             } finally { $udp.Dispose() }
             if ($PluginJar) { $processo.StandardInput.WriteLine('verificar_thread_gold') }
-            $processo.StandardInput.WriteLine('list')
+            # Com barra, como se digita no jogo; o console precisa aceitar.
+            $processo.StandardInput.WriteLine('/list')
             $processo.StandardInput.WriteLine('stop')
             $processo.StandardInput.Flush()
             $paradaEnviada = $true
@@ -133,6 +134,7 @@ try {
     }
     if ($diagnosticos -match '(?i)exception|\[ERROR\]|\[ALERT\]|\[CRITICAL\]|UnsatisfiedLinkError|Failed to (load|create)|Unable to start') { throw 'Erro detectado na saída do servidor.' }
     if (!$saida.ToString().Contains('Parando o servidor')) { throw 'Comando stop não confirmado.' }
+    if (!$saida.ToString().Contains('jogadores(as) online') -or $saida.ToString().Contains('Comando desconhecido')) { throw 'Comando /list do console não foi aceito.' }
     Write-Output 'Teste aprovado: Finalizado, ping protocolo 84, comandos e encerramento sem falhas inesperadas.'
 } finally {
     $saida.ToString() | Set-Content (Join-Path $teste 'console-stdout.txt') -Encoding utf8NoBOM

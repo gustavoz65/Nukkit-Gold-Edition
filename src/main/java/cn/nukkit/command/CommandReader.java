@@ -67,12 +67,13 @@ public class CommandReader extends Thread implements InterruptibleThread {
             if (line == null) {
                 return;
             }
-            if (!line.trim().isEmpty()) {
+            String comando = semBarra(line);
+            if (!comando.isEmpty()) {
                 // Ler stdin nao deve executar comandos de mundo na thread do console.
                 Server.getInstance().getScheduler().scheduleTask(() -> {
                     Timings.serverCommandTimer.startTiming();
                     try {
-                        ServerCommandEvent event = new ServerCommandEvent(Server.getInstance().getConsoleSender(), line);
+                        ServerCommandEvent event = new ServerCommandEvent(Server.getInstance().getConsoleSender(), comando);
                         Server.getInstance().getPluginManager().callEvent(event);
                         if (!event.isCancelled()) {
                             Server.getInstance().dispatchCommand(event.getSender(), event.getCommand());
@@ -85,6 +86,15 @@ public class CommandReader extends Thread implements InterruptibleThread {
                 });
             }
         }
+    }
+
+    /**
+     * No jogo os comandos comecam com "/", e quem joga digita o mesmo no console.
+     * Remove so a primeira barra, como no chat: "//comando" continua "/comando".
+     */
+    static String semBarra(String linha) {
+        String comando = linha.trim();
+        return comando.startsWith("/") ? comando.substring(1).trim() : comando;
     }
 
     public void shutdown() {
