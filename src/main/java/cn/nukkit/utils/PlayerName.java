@@ -6,6 +6,7 @@ public final class PlayerName {
 
     public static boolean isValid(String name) {
         return name != null && name.matches("[A-Za-z0-9_]{3,16}")
-                && !name.equalsIgnoreCase("console") && !name.equalsIgnoreCase("rcon");
+                && !name.equalsIgnoreCase("console") && !name.equalsIgnoreCase("rcon")
+                && !name.matches("(?i)(con|prn|aux|nul|com[1-9]|lpt[1-9])");
     }
 }

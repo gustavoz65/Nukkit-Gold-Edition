@@ -33,7 +33,7 @@ public final class LoginTest {
     }
 
     public static void main(String[] args) throws Exception {
-        for (String invalido : new String[]{null, "ab", "../jogador", "Nome Com Espaco", "console", "RCON", "José", "nome_com_17_letras"}) {
+        for (String invalido : new String[]{null, "ab", "../jogador", "Nome Com Espaco", "console", "RCON", "José", "nome_com_17_letras", "CON", "nul", "CoM1", "Lpt9"}) {
             if (PlayerName.isValid(invalido)) { throw new AssertionError("Nome invalido aceito: " + invalido); }
         }
         Network network = new Network(null);
