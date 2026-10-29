@@ -74,12 +74,9 @@ public class BlockMobSpawner extends BlockSolid {
 
     @Override
     public int[][] getDrops(Item item) {
-        if (item.isPickaxe() && item.getTier() >= ItemTool.TIER_WOODEN) {
-            return new int[][]{
-                    {Item.MONSTER_SPAWNER, 0, 1}
-            };
-        } else {
-            return new int[0][0];
-        }
+        // Como no jogo original, o gerador nao cai ao ser quebrado. Agora que ele
+        // gera mobs de verdade, deixar cair com qualquer picareta criaria farms faceis;
+        // plugins (ex.: SilkSpawners) podem definir drops pelo BlockBreakEvent.
+        return new int[0][0];
     }
 }
