@@ -61,8 +61,58 @@ VIAddVersionKey /LANG=1046 "LegalCopyright" "GPLv3"
 
 !insertmacro MUI_LANGUAGE "PortugueseBR"
 
+; Um programa em execucao nao pode ser aberto para escrita no Windows, entao
+; abrir java.exe em modo "a" (sem escrever) diz se o servidor esta rodando.
+; Se estiver, o instalador pede a parada criando parar.servidor: o core le esse
+; arquivo a cada segundo e desliga salvando mundos e jogadores, como o stop.
+; Versoes antigas nao conhecem o arquivo; depois de 30 s o processo e encerrado
+; a forca (perde so o que mudou desde o ultimo autosave).
+!macro EmUso UNICO DESTINO_LIVRE
+  IfFileExists "$INSTDIR\runtime\bin\java.exe" 0 ${DESTINO_LIVRE}
+  ClearErrors
+  FileOpen $0 "$INSTDIR\runtime\bin\java.exe" a
+  IfErrors +3
+  FileClose $0
+  Goto ${DESTINO_LIVRE}
+!macroend
+
+!macro FecharServidor UNICO
+  StrCpy $1 0
+  checar_${UNICO}:
+  !insertmacro EmUso ${UNICO} livre_${UNICO}
+  ${If} $1 == 0
+    DetailPrint "O servidor esta aberto; pedindo para ele salvar e desligar..."
+    FileOpen $2 "$INSTDIR\parar.servidor" w
+    FileClose $2
+  ${EndIf}
+  IntOp $1 $1 + 1
+  ${If} $1 <= 60
+    Sleep 500
+    Goto checar_${UNICO}
+  ${EndIf}
+  ${If} $1 == 61
+    DetailPrint "O servidor nao respondeu em 30 s; encerrando o processo."
+    ; O caminho vai por variavel de ambiente para nao quebrar aspas no comando.
+    System::Call 'kernel32::SetEnvironmentVariable(t "NUKKITGOLD_JAVA", t "$INSTDIR\runtime\")'
+    nsExec::Exec `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-Process java,javaw -ErrorAction SilentlyContinue | Where-Object { $$_.Path -and $$_.Path.StartsWith($$env:NUKKITGOLD_JAVA, [StringComparison]::OrdinalIgnoreCase) } | Stop-Process -Force"`
+    Pop $2
+    Sleep 1000
+    Goto checar_${UNICO}
+  ${EndIf}
+  Delete "$INSTDIR\parar.servidor"
+  Abort "Nao foi possivel fechar o servidor. Feche a janela do Nukkit Gold e rode o instalador de novo."
+  livre_${UNICO}:
+  Delete "$INSTDIR\parar.servidor"
+  ${If} $1 > 0
+    DetailPrint "Servidor fechado."
+    ; O Windows libera os arquivos alguns instantes depois do fim do processo.
+    Sleep 1000
+  ${EndIf}
+!macroend
+
 Section "Servidor" SecServidor
   SectionIn RO
+  !insertmacro FecharServidor instalar
   SetOutPath "$INSTDIR"
   File "${ORIGEM}\nukkit-gold.jar"
   File "${ORIGEM}\start.bat"
@@ -133,6 +183,7 @@ Function AbrirPasta
 FunctionEnd
 
 Section "Uninstall"
+  !insertmacro FecharServidor remover
   Delete "$DESKTOP\${NOME}.lnk"
   RMDir /r "$SMPROGRAMS\${NOME}"
 

@@ -12,7 +12,7 @@ O core já recebeu a base Nukkit-Gold 0.1.0, uma primeira rodada de correções 
 
 O instalador coloca o servidor em `C:\Users\<você>\NukkitGold` (dá para trocar a pasta), já com Java 25, GoldCore, GoldAuth e o idioma em português. Ele cria atalhos na área de trabalho e no menu Iniciar, incluindo **Pasta do servidor** (onde ficam `plugins/`, `worlds/` e `server.properties`), e registra o programa em **Configurações > Aplicativos** para desinstalar.
 
-Para atualizar, rode o instalador de uma versão nova por cima: mundos, jogadores e configurações são mantidos. Ao desinstalar, o padrão é manter esses dados; eles só são apagados se você responder **Sim** na pergunta.
+Para atualizar, rode o instalador de uma versão nova por cima: mundos, jogadores e configurações são mantidos. Se o servidor estiver aberto, o instalador pede para ele salvar e desligar sozinho (criando o arquivo `parar.servidor`, que o core verifica a cada segundo); se não houver resposta em 30 segundos, como numa versão anterior a essa, o processo é encerrado à força e perde só o que mudou desde o último salvamento automático. Ao desinstalar, o padrão é manter esses dados; eles só são apagados se você responder **Sim** na pergunta.
 
 O instalador não tem assinatura digital, então o Windows pode exibir "O Windows protegeu o computador". Clique em **Mais informações > Executar assim mesmo**. Na primeira execução, permita o Java no firewall em redes privadas para jogar na rede local.
 
