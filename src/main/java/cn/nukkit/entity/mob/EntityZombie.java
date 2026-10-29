@@ -10,5 +10,11 @@ public class EntityZombie extends EntityMob {
     public EntityZombie(FullChunk chunk, CompoundTag nbt) { super(chunk, nbt); }
     @Override public int getNetworkId() { return NETWORK_ID; }
     @Override public String getName() { return hasCustomName() ? getNameTag() : "Zumbi"; }
-    @Override public Item[] getDrops() { return new Item[]{Item.get(Item.ROTTEN_FLESH)}; }
+    @Override protected boolean burnsInDaylight() { return true; }
+
+    @Override
+    public Item[] getDrops() {
+        int carne = randomDrop(2);
+        return carne == 0 ? new Item[0] : new Item[]{Item.get(Item.ROTTEN_FLESH, 0, carne)};
+    }
 }

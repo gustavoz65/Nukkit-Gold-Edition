@@ -67,6 +67,14 @@ public class EntityCreeper extends EntityMob {
         super.spawnTo(player);
     }
 
+    @Override protected double getMoveSpeed() { return 0.11; }
+
+    @Override
+    public cn.nukkit.item.Item[] getDrops() {
+        int polvora = randomDrop(2);
+        return polvora == 0 ? new cn.nukkit.item.Item[0] : new cn.nukkit.item.Item[]{cn.nukkit.item.Item.get(cn.nukkit.item.Item.GUNPOWDER, 0, polvora)};
+    }
+
     @Override protected double getAttackReach() { return 3; }
     @Override protected int getAttackInterval() { return 1; }
 

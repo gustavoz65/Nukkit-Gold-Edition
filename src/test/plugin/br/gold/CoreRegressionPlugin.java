@@ -245,6 +245,7 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
             for (int tick = 1; tick <= 80; tick++) { zumbi.onUpdate(getServer().getTick() + tick); }
             exigir(zumbi.distanceSquared(jogador) < distanciaAntes && jogador.dano > 0, "Zumbi nao perseguiu ou atacou o alvo simulado.");
             zumbi.close();
+            verificarIAExtra(mundo, jogador, x, y, z);
             this.cancelarSpawn = true;
             exigir(cn.nukkit.level.MobSpawning.spawn(mundo, 32, x + 0.5, y, z + 0.5, cn.nukkit.event.entity.CreatureSpawnEvent.Reason.SPAWNER) == null, "Spawn cancelado por plugin foi aceito.");
             this.cancelarSpawn = false;
@@ -271,6 +272,50 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
             for (java.util.Map.Entry<cn.nukkit.math.Vector3, cn.nukkit.block.Block> entrada : pisoAnterior.entrySet()) {
                 mundo.setBlock(entrada.getKey(), entrada.getValue(), true, true);
             }
+        }
+    }
+
+    private static Object alvo(cn.nukkit.entity.Entity mob) throws Exception {
+        java.lang.reflect.Field campo = cn.nukkit.entity.mob.EntityMob.class.getDeclaredField("target");
+        campo.setAccessible(true);
+        return campo.get(mob);
+    }
+
+    private void verificarIAExtra(cn.nukkit.level.Level mundo, JogadorSimulado jogador, int x, int y, int z) {
+        try {
+            // Ticks consecutivos, como no servidor real (o knockback dura 10 ticks).
+            int tick = getServer().getTick();
+            // Knockback: o impulso do golpe nao pode ser apagado pela IA no tick seguinte.
+            cn.nukkit.entity.Entity zumbi = cn.nukkit.entity.Entity.createEntity(32, mundo.getChunk(x >> 4, z >> 4, true), cn.nukkit.level.MobSpawning.createNBT(x + 3.5, y, z + 0.5));
+            double antes = zumbi.distanceSquared(jogador);
+            zumbi.attack(new cn.nukkit.event.entity.EntityDamageByEntityEvent(jogador, zumbi, cn.nukkit.event.entity.EntityDamageEvent.CAUSE_ENTITY_ATTACK, 1));
+            for (int i = 1; i <= 3; i++) { zumbi.onUpdate(tick + i); }
+            exigir(zumbi.distanceSquared(jogador) > antes, "Knockback foi anulado pela IA.");
+            zumbi.close();
+            // Despawn: a mais de 128 blocos de todos os jogadores o mob some.
+            double jx = jogador.x;
+            jogador.x = x + 300;
+            cn.nukkit.entity.Entity longe = cn.nukkit.entity.Entity.createEntity(32, mundo.getChunk(x >> 4, z >> 4, true), cn.nukkit.level.MobSpawning.createNBT(x + 0.5, y, z + 0.5));
+            int t = tick + 100 - ((tick + 100) % 20);
+            longe.onUpdate(t);
+            exigir(longe.closed, "Mob distante de todos os jogadores nao sumiu.");
+            jogador.x = jx;
+            // Aranha: neutra de dia e a ceu aberto; agredida, passa a perseguir quem bateu.
+            int horario = mundo.getTime();
+            mundo.setTime(1000);
+            cn.nukkit.entity.Entity aranha = cn.nukkit.entity.Entity.createEntity(35, mundo.getChunk(x >> 4, z >> 4, true), cn.nukkit.level.MobSpawning.createNBT(x + 2.5, y, z + 0.5));
+            for (int i = 1; i <= 20; i++) { aranha.onUpdate(tick + i); }
+            exigir(alvo(aranha) == null, "Aranha atacou de dia sem ser provocada.");
+            aranha.attack(new cn.nukkit.event.entity.EntityDamageByEntityEvent(jogador, aranha, cn.nukkit.event.entity.EntityDamageEvent.CAUSE_ENTITY_ATTACK, 1));
+            for (int i = 21; i <= 40; i++) { aranha.onUpdate(tick + i); }
+            exigir(alvo(aranha) == jogador, "Aranha agredida nao revidou.");
+            aranha.close();
+            mundo.setTime(horario);
+            getLogger().info("Mobs: knockback preservado, despawn distante e neutralidade da aranha verificados.");
+        } catch (RuntimeException erro) {
+            throw erro;
+        } catch (Exception erro) {
+            throw new IllegalStateException(erro);
         }
     }
 
