@@ -155,6 +155,9 @@ public class Server {
     private int autoSaveTicker = 0;
     private int autoSaveTicks = 6000;
 
+    /** Arquivo na pasta de dados que pede um desligamento normal (usado pelo instalador). */
+    public static final String ARQUIVO_PARADA = "parar.servidor";
+
     private BaseLang baseLang;
 
     private boolean forceLanguage = false;
@@ -189,6 +192,8 @@ public class Server {
         this.logger = logger;
 
         this.filePath = filePath;
+        // Um pedido de parada que sobrou de uma instalacao anterior nao pode derrubar esta execucao.
+        new File(dataPath, ARQUIVO_PARADA).delete();
         if (!new File(dataPath + "worlds/").exists()) {
             new File(dataPath + "worlds/").mkdirs();
         }
@@ -1022,6 +1027,19 @@ public class Server {
         if (this.sendUsageTicker > 0 && --this.sendUsageTicker == 0) {
             this.sendUsageTicker = 6000;
             //todo sendUsage
+        }
+
+        // O instalador cria este arquivo para pedir um desligamento que salva os mundos,
+        // ja que nao tem como digitar stop no console de outro processo.
+        if (this.tickCounter % 20 == 0 && this.isRunning) {
+            File pedidoParada = new File(this.dataPath, ARQUIVO_PARADA);
+            if (pedidoParada.isFile()) {
+                if (!pedidoParada.delete()) {
+                    this.logger.warning("Nao foi possivel apagar " + ARQUIVO_PARADA + "; apague-o antes de iniciar de novo.");
+                }
+                this.logger.info("Desligamento pedido pelo instalador; salvando mundos e jogadores.");
+                this.shutdown();
+            }
         }
 
         if (this.tickCounter % 100 == 0) {
