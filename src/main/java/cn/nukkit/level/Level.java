@@ -706,6 +706,7 @@ public class Level implements ChunkManager, Metadatable {
         }
 
         this.levelCurrentTick++;
+        MobSpawning.tick(this, currentTick);
 
         this.unloadChunks();
         this.timings.doTickPending.startTiming();

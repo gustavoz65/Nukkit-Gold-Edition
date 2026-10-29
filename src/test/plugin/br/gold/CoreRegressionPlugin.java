@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /** Executado apenas no servidor isolado de testes, nunca no jar de distribuicao. */
 public final class CoreRegressionPlugin extends PluginBase implements Listener {
     private boolean cancelar;
+    private boolean cancelarSpawn;
 
     @Override
     public void onEnable() {
@@ -33,6 +34,8 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarInventario();
                 verificarServicos();
                 verificarIsolamento();
+                verificarMobs();
+                verificarComportamentoMobs();
                 getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
             } catch (Throwable erro) {
                 getLogger().error("VERIFICACOES_INTEGRADAS_FALHARAM", erro);
@@ -44,6 +47,11 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
     @EventHandler
     public void aoTransacionar(InventoryTransactionEvent evento) {
         if (this.cancelar) { evento.setCancelled(); }
+    }
+
+    @EventHandler
+    public void aoGerarMob(cn.nukkit.event.entity.CreatureSpawnEvent evento) {
+        if (this.cancelarSpawn) { evento.setCancelled(); }
     }
 
     private void verificarInventario() {
@@ -131,6 +139,113 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
     public static final class FalhaSimuladaEvent extends Event {
         private static final HandlerList handlers = new HandlerList();
         public static HandlerList getHandlers() { return handlers; }
+    }
+
+    private void verificarMobs() {
+        cn.nukkit.level.Level mundo = getServer().getDefaultLevel();
+        cn.nukkit.level.Position spawn = mundo.getSafeSpawn();
+        int x = spawn.getFloorX();
+        int z = spawn.getFloorZ();
+        int y = Math.min(120, spawn.getFloorY() + 3);
+        cn.nukkit.level.format.FullChunk chunk = mundo.getChunk(x >> 4, z >> 4, true);
+        for (int id : new int[]{32, 33, 34, 35}) {
+            cn.nukkit.entity.Entity entidade = cn.nukkit.entity.Entity.createEntity(id, chunk, cn.nukkit.level.MobSpawning.createNBT(x + 0.5, y, z + 0.5));
+            exigir(entidade instanceof cn.nukkit.entity.mob.EntityMob && entidade.getNetworkId() == id, "Registro de mob incorreto: " + id);
+            exigir(entidade.getWidth() > 0 && entidade.getHeight() > 0, "Mob sem volume de colisao.");
+            entidade.onUpdate(getServer().getTick() + 1);
+            entidade.saveNBT();
+            exigir(!entidade.namedTag.getString("id").isEmpty(), "Mob sem identidade persistente.");
+            entidade.close();
+        }
+        cn.nukkit.math.Vector3 posicao = new cn.nukkit.math.Vector3(x + 2, y, z + 2);
+        cn.nukkit.block.Block anterior = mundo.getBlock(posicao);
+        mundo.setBlock(posicao, cn.nukkit.block.Block.get(cn.nukkit.block.Block.MONSTER_SPAWNER), true, true);
+        cn.nukkit.nbt.tag.CompoundTag nbt = new cn.nukkit.nbt.tag.CompoundTag().putString("id", "MobSpawner")
+                .putInt("x", x + 2).putInt("y", y).putInt("z", z + 2).putInt("EntityId", 34).putInt("Delay", 0);
+        cn.nukkit.blockentity.BlockEntity bloco = cn.nukkit.blockentity.BlockEntity.createBlockEntity("MobSpawner", mundo.getChunk((x + 2) >> 4, (z + 2) >> 4, true), nbt);
+        exigir(bloco instanceof cn.nukkit.blockentity.BlockEntityMobSpawner, "Spawner nao registrado.");
+        cn.nukkit.blockentity.BlockEntityMobSpawner spawner = (cn.nukkit.blockentity.BlockEntityMobSpawner) bloco;
+        exigir(spawner.getEntityId() == 34 && spawner.setEntityId(35) && !spawner.setEntityId(999), "Identidade do spawner invalida.");
+        spawner.saveNBT();
+        exigir(spawner.namedTag.getString("id").equals("MobSpawner") && spawner.namedTag.getInt("EntityId") == 35, "Spawner nao preservou os dados.");
+        for (int i = 0; i < 40; i++) { exigir(spawner.onUpdate(), "Spawner valido encerrou a atualizacao."); }
+        spawner.close();
+        mundo.setBlock(posicao, anterior, true, true);
+        getLogger().info("Mobs: IDs, dimensoes, atualizacao, NBT e spawner sem jogador verificados.");
+    }
+
+    private void verificarComportamentoMobs() {
+        cn.nukkit.level.Level mundo = getServer().getDefaultLevel();
+        cn.nukkit.level.Position spawn = mundo.getSafeSpawn();
+        int x = spawn.getFloorX();
+        int z = spawn.getFloorZ();
+        int y = 120;
+        java.util.Map<cn.nukkit.math.Vector3, cn.nukkit.block.Block> pisoAnterior = new java.util.LinkedHashMap<>();
+        JogadorSimulado jogador = new JogadorSimulado();
+        jogador.x = x + 6.5;
+        jogador.y = y;
+        jogador.z = z + 0.5;
+        mundo.getPlayers().put(-1L, jogador);
+        cn.nukkit.blockentity.BlockEntityMobSpawner spawner = null;
+        cn.nukkit.math.Vector3 posSpawner = new cn.nukkit.math.Vector3(x + 4, y, z);
+        cn.nukkit.block.Block anteriorSpawner = mundo.getBlock(posSpawner);
+        try {
+            for (int dx = -4; dx <= 12; dx++) {
+                for (int dz = -5; dz <= 5; dz++) {
+                    cn.nukkit.math.Vector3 pos = new cn.nukkit.math.Vector3(x + dx, y - 1, z + dz);
+                    pisoAnterior.put(pos, mundo.getBlock(pos));
+                    mundo.setBlock(pos, cn.nukkit.block.Block.get(cn.nukkit.block.Block.STONE), true, true);
+                }
+            }
+            cn.nukkit.entity.Entity zumbi = cn.nukkit.entity.Entity.createEntity(32, mundo.getChunk(x >> 4, z >> 4, true), cn.nukkit.level.MobSpawning.createNBT(x + 0.5, y, z + 0.5));
+            double distanciaAntes = zumbi.distanceSquared(jogador);
+            for (int tick = 1; tick <= 80; tick++) { zumbi.onUpdate(getServer().getTick() + tick); }
+            exigir(zumbi.distanceSquared(jogador) < distanciaAntes && jogador.dano > 0, "Zumbi nao perseguiu ou atacou o alvo simulado.");
+            zumbi.close();
+            this.cancelarSpawn = true;
+            exigir(cn.nukkit.level.MobSpawning.spawn(mundo, 32, x + 0.5, y, z + 0.5, cn.nukkit.event.entity.CreatureSpawnEvent.Reason.SPAWNER) == null, "Spawn cancelado por plugin foi aceito.");
+            this.cancelarSpawn = false;
+            cn.nukkit.entity.Entity permitido = cn.nukkit.level.MobSpawning.spawn(mundo, 32, x + 0.5, y, z + 0.5, cn.nukkit.event.entity.CreatureSpawnEvent.Reason.SPAWNER);
+            exigir(permitido != null, "Spawn valido em piso livre foi recusado.");
+            permitido.close();
+            mundo.setBlock(posSpawner, cn.nukkit.block.Block.get(cn.nukkit.block.Block.MONSTER_SPAWNER), true, true);
+            spawner = new cn.nukkit.blockentity.BlockEntityMobSpawner(mundo.getChunk((x + 4) >> 4, z >> 4, true),
+                    new cn.nukkit.nbt.tag.CompoundTag().putString("id", "MobSpawner").putInt("x", x + 4).putInt("y", y).putInt("z", z).putInt("EntityId", 32).putInt("Delay", 0));
+            for (int rodada = 0; rodada < 8; rodada++) {
+                spawner.namedTag.putInt("Delay", 0);
+                for (int tick = 0; tick < 20; tick++) { spawner.onUpdate(); }
+            }
+            int monstros = 0;
+            for (cn.nukkit.entity.Entity entidade : mundo.getEntities()) { if (entidade instanceof cn.nukkit.entity.mob.EntityMob) { ++monstros; } }
+            exigir(monstros > 0 && monstros <= 6, "Spawner nao gerou mobs ou excedeu o limite local.");
+            getLogger().info("Mobs: perseguicao e ataque contra alvo simulado, cancelamento de spawn e limite do spawner verificados.");
+        } finally {
+            this.cancelarSpawn = false;
+            mundo.getPlayers().remove(-1L);
+            if (spawner != null) { spawner.close(); }
+            for (cn.nukkit.entity.Entity entidade : mundo.getEntities()) { if (entidade instanceof cn.nukkit.entity.mob.EntityMob) { entidade.close(); } }
+            mundo.setBlock(posSpawner, anteriorSpawner, true, true);
+            for (java.util.Map.Entry<cn.nukkit.math.Vector3, cn.nukkit.block.Block> entrada : pisoAnterior.entrySet()) {
+                mundo.setBlock(entrada.getKey(), entrada.getValue(), true, true);
+            }
+        }
+    }
+
+    private static final class JogadorSimulado extends cn.nukkit.Player {
+        private float dano;
+        private JogadorSimulado() {
+            super((cn.nukkit.network.SourceInterface) Proxy.newProxyInstance(cn.nukkit.network.SourceInterface.class.getClassLoader(), new Class<?>[]{cn.nukkit.network.SourceInterface.class}, (proxy, metodo, args) -> null), 1L, "127.0.0.1", 19133);
+            this.spawned = true;
+            this.username = "GoldTeste";
+        }
+        @Override public boolean isAlive() { return true; }
+        @Override public boolean isConnected() { return true; }
+        @Override public boolean isCreative() { return false; }
+        @Override public boolean isSpectator() { return false; }
+        @Override public void attack(cn.nukkit.event.entity.EntityDamageEvent evento) {
+            getServer().getPluginManager().callEvent(evento);
+            if (!evento.isCancelled()) { this.dano += evento.getFinalDamage(); }
+        }
     }
 
     private static final class InventarioTeste extends BaseInventory {

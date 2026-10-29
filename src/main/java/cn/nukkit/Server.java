@@ -1867,6 +1867,9 @@ public class Server {
         Entity.registerEntity("Painting", EntityPainting.class);
         //todo mobs
         Entity.registerEntity("Creeper", EntityCreeper.class);
+        Entity.registerEntity("Zombie", cn.nukkit.entity.mob.EntityZombie.class);
+        Entity.registerEntity("Skeleton", cn.nukkit.entity.mob.EntitySkeleton.class);
+        Entity.registerEntity("Spider", cn.nukkit.entity.mob.EntitySpider.class);
         //TODO: more mobs
         Entity.registerEntity("Chicken", EntityChicken.class);
         Entity.registerEntity("Cow", EntityCow.class);
@@ -1892,6 +1895,7 @@ public class Server {
 
     private void registerBlockEntities() {
         BlockEntity.registerBlockEntity(BlockEntity.FURNACE, BlockEntityFurnace.class);
+        BlockEntity.registerBlockEntity(BlockEntity.MOB_SPAWNER, cn.nukkit.blockentity.BlockEntityMobSpawner.class);
         BlockEntity.registerBlockEntity(BlockEntity.CHEST, BlockEntityChest.class);
         BlockEntity.registerBlockEntity(BlockEntity.SIGN, BlockEntitySign.class);
         BlockEntity.registerBlockEntity(BlockEntity.ENCHANT_TABLE, BlockEntityEnchantTable.class);

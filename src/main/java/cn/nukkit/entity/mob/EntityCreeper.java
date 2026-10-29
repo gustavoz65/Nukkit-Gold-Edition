@@ -18,6 +18,7 @@ public class EntityCreeper extends EntityMob {
     public static final int DATA_SWELL = 17;
     public static final int DATA_SWELL_OLD = 18;
     public static final int DATA_POWERED = 19;
+    private int goldFuse;
 
     @Override
     public int getNetworkId() {
@@ -63,18 +64,29 @@ public class EntityCreeper extends EntityMob {
 
     @Override
     public void spawnTo(Player player) {
-        AddEntityPacket pk = new AddEntityPacket();
-        pk.type = this.getNetworkId();
-        pk.eid = this.getId();
-        pk.x = (float) this.x;
-        pk.y = (float) this.y;
-        pk.z = (float) this.z;
-        pk.speedX = (float) this.motionX;
-        pk.speedY = (float) this.motionY;
-        pk.speedZ = (float) this.motionZ;
-        pk.metadata = this.dataProperties;
-        player.dataPacket(pk);
-
         super.spawnTo(player);
+    }
+
+    @Override protected double getAttackReach() { return 3; }
+    @Override protected int getAttackInterval() { return 1; }
+
+    @Override
+    public boolean onUpdate(int currentTick) {
+        boolean active = super.onUpdate(currentTick);
+        if (this.target == null || this.target.distanceSquared(this) > 9) { this.goldFuse = 0; }
+        return active;
+    }
+
+    @Override
+    protected void attackTarget(Player player) {
+        if (++this.goldFuse < 30) { return; }
+        this.goldFuse = 0;
+        cn.nukkit.event.entity.EntityExplosionPrimeEvent event = new cn.nukkit.event.entity.EntityExplosionPrimeEvent(this, isPowered() ? 6 : 3);
+        this.server.getPluginManager().callEvent(event);
+        if (event.isCancelled()) { return; }
+        cn.nukkit.level.Explosion explosion = new cn.nukkit.level.Explosion(this, event.getForce(), this);
+        if (event.isBlockBreaking()) { explosion.explodeA(); }
+        explosion.explodeB();
+        this.close();
     }
 }
