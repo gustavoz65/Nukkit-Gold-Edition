@@ -148,16 +148,29 @@ public class RakNetInterface implements ServerInstance, AdvancedSourceInterface 
                         return;
                     }
 
-                    pk = PacketDecoder.decode(packet.buffer, this.network::getPacket);
+                    try {
+                        pk = PacketDecoder.decode(packet.buffer, this.network::getPacket);
+                    } catch (RuntimeException e) {
+                        // Formato invalido vem do cliente: encerra so esta sessao, sem bloquear o IP compartilhado.
+                        Player player = this.players.get(identifier);
+                        if (player != null) {
+                            this.server.getLogger().debug("Pacote de rede invalido de " + player.getName() + ": " + e.getMessage());
+                            player.close("", "Pacote de rede invalido.");
+                        }
+                        return;
+                    }
                     if (pk != null) {
                         this.players.get(identifier).handleDataPacket(pk);
                     }
                 }
             } catch (Exception e) {
+                // Falha ao tratar um pacote valido e defeito do servidor: precisa ficar registrada.
                 Player player = this.players.get(identifier);
+                this.server.getLogger().critical("Erro ao tratar pacote " + (pk == null ? "desconhecido" : pk.getClass().getSimpleName())
+                        + (player == null ? "" : " de " + player.getName()));
+                this.server.getLogger().logException(e);
                 if (player != null) {
-                    // Encerra apenas esta sessao, sem bloquear jogadores que compartilham o IP.
-                    player.close("", "Pacote de rede invalido.");
+                    player.close("", "Erro interno ao processar sua conexao.");
                 }
             }
         }

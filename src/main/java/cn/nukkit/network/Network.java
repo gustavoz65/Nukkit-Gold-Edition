@@ -123,11 +123,17 @@ public class Network {
     }
 
     public void processBatch(BatchPacket packet, Player player) {
+        List<DataPacket> packets;
         try {
-            processPackets(player, PacketDecoder.decodeBatch(packet.payload, this::getPacket));
+            packets = PacketDecoder.decodeBatch(packet.payload, this::getPacket);
         } catch (java.io.IOException | RuntimeException e) {
+            // Erro de formato vem do cliente: encerra a sessao sem despejar o payload no log.
+            this.server.getLogger().debug("Lote de rede invalido de " + player.getName() + ": " + e.getMessage());
             player.close("", "Pacote de rede invalido.");
+            return;
         }
+        // Erros ao tratar pacotes ja decodificados sao falhas do servidor e sobem para o chamador registrar.
+        processPackets(player, packets);
     }
     /**
      * Process packets obtained from batch packets
