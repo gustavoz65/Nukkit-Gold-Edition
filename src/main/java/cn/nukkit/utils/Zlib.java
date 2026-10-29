@@ -33,21 +33,7 @@ public abstract class Zlib {
     }
 
     public static byte[] inflate(InputStream stream) throws IOException {
-        InflaterInputStream inputStream = new InflaterInputStream(stream);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        byte[] buffer = new byte[1024];
-        int length;
-
-        while ((length = inputStream.read(buffer)) != -1) {
-            outputStream.write(buffer, 0, length);
-        }
-
-        buffer = outputStream.toByteArray();
-        outputStream.flush();
-        outputStream.close();
-        inputStream.close();
-
-        return buffer;
+        return inflate(stream, 64 * 1024 * 1024);
     }
 
     public static byte[] inflate(byte[] data) throws IOException {
@@ -55,7 +41,25 @@ public abstract class Zlib {
     }
 
     public static byte[] inflate(byte[] data, int maxSize) throws IOException {
-        return inflate(new ByteArrayInputStream(data, 0, maxSize));
+        return inflate(new ByteArrayInputStream(data), maxSize);
+    }
+
+    private static byte[] inflate(InputStream stream, int maxSize) throws IOException {
+        if (maxSize <= 0) {
+            throw new IllegalArgumentException("O limite de descompressao deve ser positivo.");
+        }
+        try (InflaterInputStream input = new InflaterInputStream(stream);
+             ByteArrayOutputStream output = new ByteArrayOutputStream(Math.min(maxSize, 8192))) {
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = input.read(buffer)) != -1) {
+                if (length > maxSize - output.size()) {
+                    throw new IOException("Dados descomprimidos excedem o limite permitido.");
+                }
+                output.write(buffer, 0, length);
+            }
+            return output.toByteArray();
+        }
     }
 
 }
