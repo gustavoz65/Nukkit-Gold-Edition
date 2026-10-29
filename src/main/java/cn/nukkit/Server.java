@@ -97,6 +97,7 @@ public class Server {
     private boolean hasStopped = false;
 
     private PluginManager pluginManager = null;
+    private final cn.nukkit.plugin.ServiceManager serviceManager = new cn.nukkit.plugin.ServiceManager();
 
     private int profilingTickrate = 20;
 
@@ -1288,6 +1289,10 @@ public class Server {
 
     public PluginManager getPluginManager() {
         return this.pluginManager;
+    }
+
+    public cn.nukkit.plugin.ServiceManager getServiceManager() {
+        return this.serviceManager;
     }
 
     public CraftingManager getCraftingManager() {

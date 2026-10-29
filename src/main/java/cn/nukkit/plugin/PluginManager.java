@@ -535,10 +535,12 @@ public class PluginManager {
                 this.removePermission(permission);
             }
         }
+        this.server.getServiceManager().unregisterAll(plugin);
     }
 
     public void clearPlugins() {
         this.disablePlugins();
+        this.server.getServiceManager().clear();
         this.plugins.clear();
         this.fileAssociations.clear();
         this.permissions.clear();
