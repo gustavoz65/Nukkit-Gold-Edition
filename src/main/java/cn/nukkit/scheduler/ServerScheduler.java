@@ -57,6 +57,12 @@ public class ServerScheduler {
         return addTask(null, task, 0, 0, true);
     }
 
+    /** Inicia o trabalho sem aguardar outro tick; a conclusao continua na thread principal. */
+    public void executeAsyncTask(AsyncTask task) {
+        task.setTaskId(nextTaskId());
+        this.asyncPool.submitTask(task);
+    }
+
     @Deprecated
     public void scheduleAsyncTaskToWorker(AsyncTask task, int worker) {
         scheduleAsyncTask(task);
