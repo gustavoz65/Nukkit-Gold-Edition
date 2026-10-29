@@ -6,7 +6,7 @@ param(
     [switch]$Direto = $true,
     [string]$PluginJar = (Join-Path $Raiz 'build/gold-core-regression.jar'),
     [switch]$FalhasEsperadas = $true,
-    [string[]]$OutrosPlugins = @((Join-Path $Raiz 'goldsuite/gold-core/build/libs/gold-core-0.1.0.jar'))
+    [string[]]$OutrosPlugins = @((Join-Path $Raiz 'goldsuite/gold-core/build/libs/gold-core-0.1.0.jar'), (Join-Path $Raiz 'goldsuite/gold-auth/build/libs/gold-auth-0.1.0.jar'))
 )
 $ErrorActionPreference = 'Stop'
 $pastaBuild = [IO.Path]::GetFullPath((Join-Path $Raiz 'build'))
@@ -107,6 +107,7 @@ try {
                 if ($resposta[0] -ne 0x1c -or !$textoPing.Contains(';84;0.15.10;')) { throw 'Resposta de ping inesperada.' }
                 $textoPing | Set-Content (Join-Path $teste 'ping.txt') -Encoding utf8NoBOM
             } finally { $udp.Dispose() }
+            if ($PluginJar) { $processo.StandardInput.WriteLine('verificar_thread_gold') }
             $processo.StandardInput.WriteLine('list')
             $processo.StandardInput.WriteLine('stop')
             $processo.StandardInput.Flush()
@@ -129,7 +130,7 @@ try {
     }
     if ($diagnosticos -match '(?i)exception|\[ERROR\]|\[ALERT\]|\[CRITICAL\]|UnsatisfiedLinkError|Failed to (load|create)|Unable to start') { throw 'Erro detectado na saída do servidor.' }
     if (!$saida.ToString().Contains('Parando o servidor')) { throw 'Comando stop não confirmado.' }
-    Write-Output 'Teste aprovado: Finalizado, ping protocolo 84, comandos e encerramento sem erros.'
+    Write-Output 'Teste aprovado: Finalizado, ping protocolo 84, comandos e encerramento sem falhas inesperadas.'
 } finally {
     $saida.ToString() | Set-Content (Join-Path $teste 'console-stdout.txt') -Encoding utf8NoBOM
     $erros.ToString() | Set-Content (Join-Path $teste 'console-stderr.txt') -Encoding utf8NoBOM

@@ -44,3 +44,15 @@ project(':gold-core') {
     tasks.named('test') { enabled = false }
     check.dependsOn regression
 }
+
+project(':gold-auth') {
+    dependencies { compileOnly project(':gold-api') }
+    tasks.named('test') { enabled = false }
+    tasks.register('regression', JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = 'br.goldsuite.auth.AuthTest'
+        jvmArgs '-ea'
+    }
+    check.dependsOn regression
+}

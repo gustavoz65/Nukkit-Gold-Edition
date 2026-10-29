@@ -1,10 +1,12 @@
 # GoldSuite
 
-Reescrita modular dos 86 plugins PHP em Java para Nukkit-Gold, protocolo 84. Esta primeira entrega implementa as interfaces de `gold-api` e **parte da base comum** de `gold-core`: registro de serviço, SQLite assíncrono e assinatura HMAC de itens. Os módulos de jogo ainda serão implementados; os arquivos PHAR originais não são executados pelo Nukkit.
+Reescrita modular dos 86 plugins PHP em Java para Nukkit-Gold, protocolo 84. Esta entrega implementa as interfaces de `gold-api`, **parte da base comum** de `gold-core` e o primeiro módulo de jogo, [GoldAuth](gold-auth/README.md). Os demais módulos de jogo ainda serão implementados; os arquivos PHAR originais não são executados pelo Nukkit.
 
 ## Compilar e verificar
 
 Compile primeiro o core na raiz do repositório com `scripts/build.bat` ou `bash scripts/build.sh`. Depois, nesta pasta:
+
+No Windows, também é possível executar `scripts/build-suite.ps1` a partir da raiz: ele usa temporariamente o JDK do `javac` no PATH, restaura `JAVA_HOME` ao terminar e executa o build e os testes offline.
 
 ```powershell
 .\gradlew.bat --offline check jar
@@ -22,6 +24,7 @@ Saídas:
 
 - `gold-api/build/libs/gold-api-0.1.0.jar`: interfaces para compilar os módulos; não instalar como plugin separado.
 - `gold-core/build/libs/gold-core-0.1.0.jar`: plugin completo com as interfaces e o driver SQLite embutidos.
+- `gold-auth/build/libs/gold-auth-0.1.0.jar`: registro, login e troca de senha; requer GoldCore.
 
 Copie apenas o jar do GoldCore para `plugins/` do servidor e reinicie. O GoldCore cria `plugins/GoldCore/goldsuite.db` e `plugins/GoldCore/assinatura.key`. A chave precisa acompanhar os dados nos backups; trocá-la invalida os itens assinados anteriormente.
 
@@ -55,7 +58,7 @@ Alterar quantidade, dano ou NBT exige gerar uma nova assinatura no servidor. A a
 - Plugin carregado no servidor: inicialização assíncrona, registro e remoção do serviço, retorno na thread principal e recusa após desativação.
 - Escrita enfileirada imediatamente antes de desativar o GoldCore: valor conferido no banco após o processo do servidor encerrar.
 
-Menus virtuais, hologramas, cooldowns, eventos de domínio e os módulos de autenticação, economia, proteção e demais funcionalidades seguem pendentes no [roadmap](ROADMAP.md).
+Menus virtuais, hologramas, cooldowns, os demais eventos de domínio e os módulos de economia, proteção e outras funcionalidades seguem pendentes no [roadmap](ROADMAP.md). A autenticação inicial tem seu próprio [guia e limites](gold-auth/README.md).
 
 ## Dependência incluída
 

@@ -6,7 +6,7 @@ O planejamento é uma suíte Gradle com um jar por módulo. O mapa abaixo preser
 | --- | --- | --- |
 | gold-api | Base inicial | Interfaces dos serviços comuns |
 | GoldCore | Parcial | SQLite assíncrono e HMAC prontos; menus, hologramas, cooldowns e eventos pendentes; aFloatingText |
-| GoldAuth | Pendente | ServerAuth, ChatLogin, OpLogin |
+| GoldAuth | Inicial implementado e testado com jogadores simulados | ServerAuth, ChatLogin, OpLogin; falta validar cliente real e ampliar configuração |
 | GoldPerms | Pendente | PurePerms |
 | GoldVip | Pendente | Key, Vips, VipJoin |
 | GoldEconomy | Pendente | EconomyAPI, Cash, TCashh, lxp, VenderAll, EconomySellPro, TopMoney |
