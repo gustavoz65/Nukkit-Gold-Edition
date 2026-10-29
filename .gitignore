@@ -4,6 +4,17 @@
 *.class
 # pasta de teste do servidor
 /servidor/
+# dados locais criados pelos iniciadores na raiz
+/worlds/
+/players/
+/plugins/
+/nukkit.yml
+/server.properties
+/server.log*
+/ops.txt
+/white-list.txt
+/banned-players.json
+/banned-ips.json
 # IDE
 .idea/
 *.iml
