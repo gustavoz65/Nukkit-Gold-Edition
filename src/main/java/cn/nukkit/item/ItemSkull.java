@@ -28,7 +28,7 @@ public class ItemSkull extends Item {
 
     @Override
     public int getMaxStackSize() {
-        return 1;
+        return 64;
     }
 
     public static String getItemSkullName(int meta) {

@@ -22,6 +22,15 @@ public final class PacketTest {
         }
     }
 
+    private static cn.nukkit.item.Item slot(int id, int count) {
+        BinaryStream stream = new BinaryStream();
+        stream.putShort(id);
+        stream.putByte((byte) count);
+        stream.putShort(0);
+        stream.putLShort(0);
+        return new BinaryStream(stream.getBuffer()).getSlot();
+    }
+
     public static void main(String[] args) throws Exception {
         Network network = new Network(null);
         TextPacket texto = new TextPacket();
@@ -69,6 +78,13 @@ public final class PacketTest {
         receita.putUUID(new UUID(0, 0));
         receita.putInt(Integer.MAX_VALUE);
         rejeita(() -> PacketDecoder.decode(receita.getBuffer(), network::getPacket));
-        System.out.println("PacketTest: texto, lotes, truncamento e contagens excessivas verificados.");
+        cn.nukkit.block.Block.init();
+        cn.nukkit.item.Item.init();
+        // Cabeca empilha ate 64 no cliente; quantidade zero e repassada para a transacao decidir.
+        if (slot(397, 2).getCount() != 2 || slot(1, 0).getId() != 1) {
+            throw new AssertionError("Pilha legitima foi recusada na leitura do pacote.");
+        }
+        rejeita(() -> slot(1, 65));
+        System.out.println("PacketTest: texto, lotes, truncamento e contagens excessivas e pilhas verificados.");
     }
 }

@@ -271,10 +271,13 @@ public class BinaryStream {
             nbt = this.get(nbtLen);
         }
 
-        Item item = Item.get(id, data, cnt, nbt);
-        if (cnt <= 0 || cnt > item.getMaxStackSize()) {
+        // Nenhuma pilha legitima da 0.15 passa de 64. O limite por item fica na
+        // transacao de inventario, que reverte o slot em vez de derrubar o jogador
+        // quando a tabela de pilhas do core diverge do cliente.
+        if (cnt > 64) {
             throw new IllegalArgumentException("Quantidade de itens na pilha invalida.");
         }
+        Item item = Item.get(id, data, cnt, nbt);
         if (nbtLen > 0) {
             try {
                 cn.nukkit.nbt.NBTIO.read(nbt, java.nio.ByteOrder.LITTLE_ENDIAN);
