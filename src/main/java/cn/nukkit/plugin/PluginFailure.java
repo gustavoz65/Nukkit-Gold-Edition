@@ -11,7 +11,9 @@ public final class PluginFailure {
     public static void rethrowIfFatal(Throwable error) {
         Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<Throwable, Boolean>());
         for (Throwable current = error; current != null && visited.add(current); current = current.getCause()) {
-            if (current instanceof VirtualMachineError) { throw (VirtualMachineError) current; }
+            // Recursao infinita em um plugin desempilha ate aqui e o servidor segue estavel;
+            // so falhas que deixam a JVM inconsistente (memoria, erro interno) sao propagadas.
+            if (current instanceof VirtualMachineError && !(current instanceof StackOverflowError)) { throw (VirtualMachineError) current; }
             if (current instanceof ThreadDeath) { throw (ThreadDeath) current; }
         }
     }
