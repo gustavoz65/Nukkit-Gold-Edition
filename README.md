@@ -4,14 +4,30 @@ Servidor em Java para **Minecraft: Pocket Edition 0.15.10**, protocolo **84**, m
 
 O core já recebeu a base Nukkit-Gold 0.1.0, uma primeira rodada de correções de segurança, registro de serviços, isolamento de falhas de plugins e suporte inicial a mobs hostis e spawners. A reescrita dos 86 plugins PHP começou pela base da suíte modular [GoldSuite](goldsuite/README.md), com SQLite assíncrono e HMAC, e pelo módulo inicial [GoldAuth](goldsuite/gold-auth/README.md), para registro e login. Os demais módulos de jogo ainda estão pendentes.
 
-## Requisitos
+## Instalar no Windows
+
+1. Baixe o **NukkitGold-Setup-0.1.0.exe** na página de [Releases](https://github.com/gustavoz65/Nukkit-Gold-Edition/releases/latest).
+2. Abra o arquivo e clique em **Avançar** até o fim. Não precisa de administrador nem de Java instalado.
+3. Abra o atalho **Nukkit Gold** na área de trabalho.
+
+O instalador coloca o servidor em `C:\Users\<você>\NukkitGold` (dá para trocar a pasta), já com Java 25, GoldCore, GoldAuth e o idioma em português. Ele cria atalhos na área de trabalho e no menu Iniciar, incluindo **Pasta do servidor** (onde ficam `plugins/`, `worlds/` e `server.properties`), e registra o programa em **Configurações > Aplicativos** para desinstalar.
+
+Para atualizar, rode o instalador de uma versão nova por cima: mundos, jogadores e configurações são mantidos. Ao desinstalar, o padrão é manter esses dados; eles só são apagados se você responder **Sim** na pergunta.
+
+O instalador não tem assinatura digital, então o Windows pode exibir "O Windows protegeu o computador". Clique em **Mais informações > Executar assim mesmo**. Na primeira execução, permita o Java no firewall em redes privadas para jogar na rede local.
+
+Para gerar o instalador a partir do fonte (Linux, com `nsis`, `python3` e `unzip`): `bash scripts/build-installer.sh`. O Java embutido é o runtime OpenJDK 25 (GPLv2 com Classpath Exception) do pacote [jdk4py](https://pypi.org/project/jdk4py/), fixado por versão e hash; as licenças ficam em `runtime/legal`.
+
+## Instalação manual
+
+### Requisitos
 
 - **Para executar:** Java 8 ou superior, com `java` no `PATH`.
 - **Para compilar:** JDK 11 ou superior, com `java`, `javac` e `jar` no `PATH`. O alvo é Java 8, usando `javac --release 8`.
 - Até **1 GiB de heap** para a JVM, mais memória para o sistema e para a própria JVM. Os iniciadores usam `-Xmx1G`.
 - Windows: Prompt de Comando ou PowerShell. Linux/macOS: Bash e ferramentas usuais (`find`, `sort`, `sed`, `cp` e `rm`).
 
-## Baixar e iniciar
+### Baixar e iniciar
 
 1. Baixe o [jar pronto em builds/nukkit-gold-0.15.10.jar](https://github.com/gustavoz65/Nukkit-Gold-Edition/raw/refs/heads/main/builds/nukkit-gold-0.15.10.jar). A pasta [builds/](https://github.com/gustavoz65/Nukkit-Gold-Edition/tree/main/builds) mantém o binário de referência; compilar o fonte gera outro jar em `build/`.
 2. Crie uma pasta para o servidor, salve o jar como `nukkit-gold.jar` e copie para essa mesma pasta o [start.bat](https://raw.githubusercontent.com/gustavoz65/Nukkit-Gold-Edition/main/start.bat) ou o [start.sh](https://raw.githubusercontent.com/gustavoz65/Nukkit-Gold-Edition/main/start.sh).
@@ -49,7 +65,7 @@ O início com os scripts equivale a:
 java -Xmx1G -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar nukkit-gold.jar
 ```
 
-No Windows, `start.bat` também seleciona a página de código UTF-8 e usa `-Djline.terminal=jline.UnsupportedTerminal` antes de `-jar`, mais o argumento `disable-ansi` depois do jar. O `start.sh` aplica essas opções de terminal ao detectar Git Bash ou Cygwin. Isso evita a inicialização do terminal nativo de jline/jansi, que pode falhar nesse Nukkit antigo. O valor literal `unsupported`, previsto inicialmente, gera `Invalid terminal type` no JLine 2.14.6 incluído; por isso os iniciadores usam o nome completo da classe.
+No Windows, `start.bat` também seleciona a página de código UTF-8 e usa `-Djline.terminal=jline.UnsupportedTerminal` antes de `-jar`, mais o argumento `disable-ansi` depois do jar. O `start.sh` aplica essas opções de terminal ao detectar Git Bash ou Cygwin. Isso evita a inicialização do terminal nativo de jline/jansi, que pode falhar nesse Nukkit antigo. O valor literal `unsupported`, previsto inicialmente, gera `Invalid terminal type` no JLine 2.14.6 incluído; por isso os iniciadores usam o nome completo da classe. Se houver `runtime\bin\java.exe` ao lado do `start.bat`, como na instalação pelo instalador, ele usa esse Java em vez do `PATH` e acrescenta `--enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow`, que evitam os avisos do Java 25 sobre o Netty e o SQLite.
 
 O core também cuida do UTF-8 e seleciona o console simples no Windows ou em entrada redirecionada, inclusive ao executar diretamente com `java -jar`.
 
