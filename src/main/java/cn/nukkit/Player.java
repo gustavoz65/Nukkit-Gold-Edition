@@ -1733,6 +1733,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.server.onPlayerLogin(this);
     }
 
+    private static boolean isCreativeOrAir(Item item) {
+        return item.getId() == Item.AIR || Item.getCreativeItemIndex(item) != -1;
+    }
+
     public void handleDataPacket(DataPacket packet) {
         if (!connected) {
             return;
@@ -3006,22 +3010,24 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
 
                     BaseTransaction transaction;
+                    // No criativo, so trocas entre itens do menu criativo (ou ar) dispensam o balanco.
+                    // Itens com NBT proprio (chaves, espadas especiais) seguem a regra normal de
+                    // transacao: podem ser reorganizados, mas nao clonados.
+                    boolean creativeFree = false;
                     if (containerSetSlotPacket.windowid == 0) { //Our inventory
                         if (containerSetSlotPacket.slot >= this.inventory.getSize()) {
                             break;
                         }
-                        if (this.isCreative()) {
-                            if (containerSetSlotPacket.item.getId() != Item.AIR && Item.getCreativeItemIndex(containerSetSlotPacket.item) == -1) {
-                                this.inventory.sendContents(this);
-                                break;
-                            }
-                        }
+                        creativeFree = this.isCreative() && isCreativeOrAir(containerSetSlotPacket.item)
+                                && isCreativeOrAir(this.inventory.getItem(containerSetSlotPacket.slot));
                         transaction = new BaseTransaction(this.inventory, containerSetSlotPacket.slot, this.inventory.getItem(containerSetSlotPacket.slot), containerSetSlotPacket.item);
                     } else if (containerSetSlotPacket.windowid == ContainerSetContentPacket.SPECIAL_ARMOR) { //Our armor
                         if (containerSetSlotPacket.slot >= 4) {
                             break;
                         }
 
+                        creativeFree = this.isCreative() && isCreativeOrAir(containerSetSlotPacket.item)
+                                && isCreativeOrAir(this.inventory.getArmorItem(containerSetSlotPacket.slot));
                         transaction = new BaseTransaction(this.inventory, containerSetSlotPacket.slot + this.inventory.getSize(), this.inventory.getArmorItem(containerSetSlotPacket.slot), containerSetSlotPacket.item);
                     } else if (this.windowIndex.containsKey(containerSetSlotPacket.windowid)) {
                         Inventory inv = this.windowIndex.get(containerSetSlotPacket.windowid);
@@ -3048,6 +3054,16 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         break;
                     }
 
+                    if (creativeFree) {
+                        // Grupo isolado: forcar o grupo pendente executaria tambem trocas sem balanco.
+                        SimpleTransactionGroup creativeGroup = new SimpleTransactionGroup(this);
+                        creativeGroup.addTransaction(transaction);
+                        if (creativeGroup.execute(true) && containerSetSlotPacket.windowid == 0) {
+                            this.inventory.setHotbarSlotIndex(containerSetSlotPacket.slot, containerSetSlotPacket.slot);
+                        }
+                        break;
+                    }
+
 
                     if (this.currentTransaction == null || this.currentTransaction.getCreationTime() < (System.currentTimeMillis() - 8 * 1000)) {
                         if (this.currentTransaction != null) {
@@ -3063,9 +3079,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     this.currentTransaction.addTransaction(transaction);
 
-                    if (this.currentTransaction.canExecute() || this.isCreative()) {
+                    if (this.currentTransaction.canExecute()) {
                         //todo achievement
-                        this.currentTransaction.execute(this.isCreative());
+                        this.currentTransaction.execute();
 
                         this.currentTransaction = null;
                     } else {
