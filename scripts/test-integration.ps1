@@ -122,6 +122,9 @@ try {
     if ($processo.ExitCode -ne 0) { throw "Código de saída inesperado: $($processo.ExitCode)" }
     $diagnosticos = $saida.ToString() + $erros.ToString()
     if ($diagnosticos.Contains('SEGREDO_NAO_DEVE_APARECER')) { throw 'Argumentos sensiveis foram registrados no console.' }
+    foreach ($senhaTeste in @('SenhaTesteSegura123', 'NovaSenhaSegura456', 'SenhaIncorreta123', 'SenhaSempreErrada123', 'NaoSobrescrever123')) {
+        if ($diagnosticos.Contains($senhaTeste)) { throw 'Senha de teste apareceu no console.' }
+    }
     if ($FalhasEsperadas) {
         $inicioFalhas = $diagnosticos.IndexOf('INICIO_FALHAS_ESPERADAS')
         $fimFalhas = $diagnosticos.IndexOf('FIM_FALHAS_ESPERADAS')

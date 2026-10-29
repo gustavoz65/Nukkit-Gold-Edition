@@ -122,6 +122,11 @@ public final class GoldAuth extends PluginBase implements Listener, AuthService 
 
     private CompletableFuture<Boolean> operate(Player player, char[] input, char[] replacementInput, Mode mode) {
         requireMainThread();
+        if (!isEnabled()) {
+            CompletableFuture<Boolean> rejected = new CompletableFuture<>();
+            rejected.completeExceptionally(new IllegalStateException("GoldAuth esta desativado."));
+            return rejected;
+        }
         Session session = session(player);
         if (session.busy) { return reject(player, "Aguarde a verificacao anterior."); }
         try { PasswordHasher.validate(input); if (mode == Mode.CHANGE) { PasswordHasher.validate(replacementInput); } }

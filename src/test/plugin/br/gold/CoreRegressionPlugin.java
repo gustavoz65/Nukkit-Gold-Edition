@@ -31,7 +31,11 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
     public void onEnable() {
         this.mainThreadId = Thread.currentThread().getId();
         Plugin auth = getServer().getPluginManager().getPlugin("GoldAuth");
-        if (auth != null && auth.isEnabled()) { getServer().getPluginManager().disablePlugin(auth); }
+        if (auth != null && auth.isEnabled()) {
+            br.goldsuite.api.AuthService api = getServer().getServiceManager().load(br.goldsuite.api.AuthService.class);
+            getServer().getPluginManager().disablePlugin(auth);
+            exigir(api.register(null, "EstadoInativo123".toCharArray()).isCompletedExceptionally(), "API de autenticacao desativada aceitou uma operacao.");
+        }
         getServer().getCommandMap().register("goldteste", new Command("verificar_thread_gold") {
             @Override public boolean execute(CommandSender sender, String label, String[] args) {
                 exigir(Thread.currentThread().getId() == mainThreadId, "Console executou comando fora da thread principal.");

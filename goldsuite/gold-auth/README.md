@@ -33,6 +33,6 @@ O plugin não escreve senhas em logs. Outros plugins instalados precisam respeit
 
 ## Verificação
 
-Testes executados no Windows/JDK 17: hash com sal individual, senha certa e errada, hash malformado/custo excessivo, janela de IP, registro e login no servidor isolado, reconexão com nome em outra capitalização, rejeição de senha antiga após troca, login pelo chat, reset administrativo, bloqueios anteriores ao login e evento de autenticação sem duplicação.
+Testes executados no Windows/JDK 17: hash com sal individual, senha certa e errada, hash malformado/custo excessivo, janela de IP, registro e login no servidor isolado, reconexão com nome em outra capitalização, rejeição de senha antiga após troca, login pelo chat, reset administrativo, bloqueios anteriores ao login, cinco erros encerrando a sessão, API desativada e evento de autenticação sem duplicação. O teste também confere que as senhas usadas não aparecem no console. O prazo completo de 120 segundos ainda não foi exercitado num teste de cliente.
 
 O teste integrado usa objetos Player simulados e SQLite real. O fluxo com a interface e a rede de um cliente MCPE 0.15.10 real ainda precisa ser validado.
