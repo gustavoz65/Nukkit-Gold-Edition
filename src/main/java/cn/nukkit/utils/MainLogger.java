@@ -161,7 +161,14 @@ public class MainLogger extends ThreadedLogger {
 
     @Override
     public void run() {
-        AnsiConsole.systemInstall();
+        if (Nukkit.ANSI) {
+            try {
+                AnsiConsole.systemInstall();
+            } catch (RuntimeException | LinkageError e) {
+                Nukkit.ANSI = false;
+                System.err.println("Cores do terminal indisponiveis; usando o console simples.");
+            }
+        }
         File logFile = new File(logPath);
         if (!logFile.exists()) {
             try {
@@ -226,9 +233,14 @@ public class MainLogger extends ThreadedLogger {
                     writer.write(dateFormat);
                     writer.write(TextFormat.clean(message));
                     writer.write("\r\n");
-                    CommandReader.getInstance().stashLine();
+                    CommandReader console = CommandReader.getInstance();
+                    if (console != null) {
+                        console.stashLine();
+                    }
                     System.out.println(colorize(TextFormat.AQUA + dateFormat + TextFormat.RESET + " " + message + TextFormat.RESET));
-                    CommandReader.getInstance().unstashLine();
+                    if (console != null) {
+                        console.unstashLine();
+                    }
                 }
             }
             writer.flush();

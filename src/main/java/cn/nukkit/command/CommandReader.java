@@ -1,27 +1,24 @@
 package cn.nukkit.command;
 
 import cn.nukkit.InterruptibleThread;
+import cn.nukkit.Nukkit;
 import cn.nukkit.Server;
 import cn.nukkit.event.server.ServerCommandEvent;
 import cn.nukkit.timings.Timings;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import jline.console.ConsoleReader;
 import jline.console.CursorBuffer;
 
-import java.io.IOException;
-
-/**
- * author: MagicDroidX
- * Nukkit
- */
+/** Leitor do console; baseado no leitor original de MagicDroidX/Nukkit Project. */
 public class CommandReader extends Thread implements InterruptibleThread {
-
     private ConsoleReader reader;
-
+    private final BufferedReader simpleReader;
     public static CommandReader instance;
-
     private CursorBuffer stashed;
-
-    private boolean running = true;
+    private volatile boolean running = true;
 
     public static CommandReader getInstance() {
         return instance;
@@ -29,59 +26,61 @@ public class CommandReader extends Thread implements InterruptibleThread {
 
     public CommandReader() {
         if (instance != null) {
-            throw new RuntimeException("Command Reader is already exist");
+            throw new IllegalStateException("O leitor de comandos ja foi criado.");
         }
-        try {
-            this.reader = new ConsoleReader();
-            reader.setPrompt("> ");
-            instance = this;
-        } catch (IOException e) {
-            Server.getInstance().getLogger().error("Unable to start Console Reader", e);
+        instance = this;
+        this.simpleReader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        if (Nukkit.ANSI) {
+            try {
+                this.reader = new ConsoleReader(System.in, System.out);
+                this.reader.setPrompt("> ");
+            } catch (IOException | RuntimeException | LinkageError e) {
+                Nukkit.ANSI = false;
+                System.err.println("Terminal avancado indisponivel; usando o console simples em UTF-8.");
+            }
         }
         this.setName("Console");
     }
 
     public String readLine() {
         try {
-            reader.resetPromptLine("", "", 0);
-            return this.reader.readLine("> ");
+            return this.reader == null ? this.simpleReader.readLine() : this.reader.readLine("> ");
         } catch (IOException e) {
-            Server.getInstance().getLogger().logException(e);
-            return "";
+            Server.getInstance().getLogger().error("Nao foi possivel ler o console.", e);
+            return null;
         }
     }
 
+    @Override
     public void run() {
-        Long lastLine = System.currentTimeMillis();
         while (this.running) {
             if (Server.getInstance().getConsoleSender() == null || Server.getInstance().getPluginManager() == null) {
+                try {
+                    Thread.sleep(40);
+                } catch (InterruptedException e) {
+                    return;
+                }
                 continue;
             }
-
             String line = readLine();
-
-            if (line != null && !line.trim().equals("")) {
-                //todo 将即时执行指令改为每tick执行
+            // Entrada encerrada nao deve criar um loop consumindo CPU.
+            if (line == null) {
+                return;
+            }
+            if (!line.trim().isEmpty()) {
+                Timings.serverCommandTimer.startTiming();
                 try {
-                    Timings.serverCommandTimer.startTiming();
                     ServerCommandEvent event = new ServerCommandEvent(Server.getInstance().getConsoleSender(), line);
                     Server.getInstance().getPluginManager().callEvent(event);
                     if (!event.isCancelled()) {
                         Server.getInstance().dispatchCommand(event.getSender(), event.getCommand());
                     }
-                    Timings.serverCommandTimer.stopTiming();
                 } catch (Exception e) {
                     Server.getInstance().getLogger().logException(e);
-                }
-
-            } else if (System.currentTimeMillis() - lastLine <= 1) {
-                try {
-                    sleep(40);
-                } catch (InterruptedException e) {
-                    Server.getInstance().getLogger().logException(e);
+                } finally {
+                    Timings.serverCommandTimer.stopTiming();
                 }
             }
-            lastLine = System.currentTimeMillis();
         }
     }
 
@@ -90,29 +89,37 @@ public class CommandReader extends Thread implements InterruptibleThread {
     }
 
     public synchronized void stashLine() {
-        this.stashed = reader.getCursorBuffer().copy();
+        if (this.reader == null || !Nukkit.ANSI) {
+            return;
+        }
+        this.stashed = this.reader.getCursorBuffer().copy();
         try {
-            reader.getOutput().write("\u001b[1G\u001b[K");
-            reader.flush();
-        } catch (IOException e) {
-            // ignore
+            this.reader.getOutput().write("\u001b[1G\u001b[K");
+            this.reader.flush();
+        } catch (IOException ignored) {
+            // A falha de redesenho nao impede o registro da mensagem.
         }
     }
 
     public synchronized void unstashLine() {
+        if (this.reader == null || this.stashed == null || !Nukkit.ANSI) {
+            return;
+        }
         try {
-            reader.resetPromptLine("> ", this.stashed.toString(), this.stashed.cursor);
-        } catch (IOException e) {
-            // ignore
+            this.reader.resetPromptLine("> ", this.stashed.toString(), this.stashed.cursor);
+        } catch (IOException ignored) {
+            // A falha de redesenho nao interrompe o servidor.
         }
     }
 
     public void removePromptLine() {
+        if (this.reader == null || !Nukkit.ANSI) {
+            return;
+        }
         try {
-            reader.resetPromptLine("", "", 0);
-        } catch (IOException e) {
-            e.printStackTrace();
+            this.reader.resetPromptLine("", "", 0);
+        } catch (IOException ignored) {
+            // O console pode ter sido fechado durante o desligamento.
         }
     }
-
 }
