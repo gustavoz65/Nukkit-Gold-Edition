@@ -70,7 +70,7 @@ public class Network {
     }
 
     public void processInterfaces() {
-        for (SourceInterface interfaz : this.interfaces) {
+        for (SourceInterface interfaz : new HashSet<>(this.interfaces)) {
             try {
                 interfaz.process();
             } catch (Exception e) {
