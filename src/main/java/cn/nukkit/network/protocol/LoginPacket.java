@@ -100,7 +100,9 @@ public class LoginPacket extends DataPacket {
         }
         String[] base = token.split("\\.");
         if (base.length < 2) return null;
-        String json = new String(Base64.getUrlDecoder().decode(base[1]), StandardCharsets.UTF_8);
+        // JWT usa base64url, mas clientes antigos tambem enviam o alfabeto padrao com '='.
+        String payload = base[1].replace('-', '+').replace('_', '/');
+        String json = new String(Base64.getDecoder().decode(payload), StandardCharsets.UTF_8);
         validateJson(json);
         return new Gson().fromJson(json, JsonObject.class);
     }

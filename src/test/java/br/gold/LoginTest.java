@@ -11,12 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public final class LoginTest {
+    private static boolean alfabetoPadrao;
+
     private static String token(String json) {
-        return "e30." + Base64.getUrlEncoder().withoutPadding().encodeToString(json.getBytes(StandardCharsets.UTF_8)) + ".assinatura";
+        Base64.Encoder codificador = alfabetoPadrao ? Base64.getEncoder() : Base64.getUrlEncoder().withoutPadding();
+        return "e30." + codificador.encodeToString(json.getBytes(StandardCharsets.UTF_8)) + ".assinatura";
     }
 
     private static byte[] login(String nome) throws Exception {
-        String cadeia = "{\"chain\":[\"" + token("{\"extraData\":{\"displayName\":\"" + nome + "\",\"identity\":\"00000000-0000-0000-0000-000000000001\"}}") + "\"]}";
+        String cadeia = "{\"chain\":[\"" + token("{\"extraData\":{\"displayName\":\"" + nome + "\",\"identity\":\"00000000-0000-0000-0000-000000000001\"},\"Extra\":\"???~~~\"}") + "\"]}";
         String skin = token("{\"SkinId\":\"Standard_Steve\",\"SkinData\":\"" + Base64.getEncoder().encodeToString(new byte[8192]) + "\"}");
         BinaryStream dados = new BinaryStream();
         dados.putLInt(cadeia.getBytes(StandardCharsets.UTF_8).length);
@@ -41,6 +44,14 @@ public final class LoginTest {
         if (!"Jogador_123".equals(recebido.username) || recebido.clientUUID == null || !recebido.skin.isValid()) {
             throw new AssertionError("Login valido nao foi preservado.");
         }
+        // "???~~~" gera '/' e '+' no alfabeto padrao e '_' e '-' no base64url.
+        for (boolean padrao : new boolean[]{false, true}) {
+            alfabetoPadrao = padrao;
+            if (!"Jogador_123".equals(((LoginPacket) PacketDecoder.decode(login("Jogador_123"), network::getPacket)).username)) {
+                throw new AssertionError("Token valido recusado no alfabeto " + (padrao ? "padrao" : "url"));
+            }
+        }
+        alfabetoPadrao = false;
         try {
             PacketDecoder.decode(login("console"), network::getPacket);
             throw new AssertionError("Nome reservado aceito no login.");
