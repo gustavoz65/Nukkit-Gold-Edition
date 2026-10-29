@@ -112,6 +112,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     protected Map<Integer, Inventory> windowIndex = new HashMap<>();
 
     protected int messageCounter = 2;
+    private final cn.nukkit.utils.RateLimiter packetLimiter = new cn.nukkit.utils.RateLimiter(400, 400);
+    private final cn.nukkit.utils.RateLimiter messageLimiter = new cn.nukkit.utils.RateLimiter(4, 4);
 
     protected int sendIndex = 0;
 
@@ -1735,6 +1737,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         if (!connected) {
             return;
         }
+        if (!this.packetLimiter.tryAcquire()) {
+            this.close("", "Limite de pacotes por segundo excedido.");
+            return;
+        }
 
         try (Timing timing = Timings.getReceiveDataPacketTiming(packet)) {
             DataPacketReceiveEvent ev = new DataPacketReceiveEvent(this, packet);
@@ -2627,9 +2633,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     TextPacket textPacket = (TextPacket) packet;
 
                     if (textPacket.type == TextPacket.TYPE_CHAT) {
+                        if (textPacket.message == null || textPacket.message.length() > 1024) {
+                            break;
+                        }
                         textPacket.message = this.removeFormat ? TextFormat.clean(textPacket.message) : textPacket.message;
-                        for (String msg : textPacket.message.split("\n")) {
+                        for (String msg : textPacket.message.split("\n", 5)) {
                             if (!"".equals(msg.trim()) && msg.length() <= 255 && this.messageCounter-- > 0) {
+                                if (!this.messageLimiter.tryAcquire()) {
+                                    break;
+                                }
                                 if (msg.startsWith("/")) { //Command
                                     PlayerCommandPreprocessEvent commandPreprocessEvent = new PlayerCommandPreprocessEvent(this, msg);
                                     if (commandPreprocessEvent.getMessage().length() > 320) {
