@@ -38,11 +38,20 @@ public class ListTag<T extends Tag> extends Tag {
     void load(NBTInputStream dis) throws IOException {
         type = dis.readByte();
         int size = dis.readInt();
+        dis.checkCollectionLength(size, 1);
+        if (type < Tag.TAG_End || type > Tag.TAG_Int_Array || (type == Tag.TAG_End && size != 0)) {
+            throw new IOException("Tipo de lista NBT invalido.");
+        }
 
         list = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             Tag tag = Tag.newTag(type, null);
-            tag.load(dis);
+            dis.enterTag();
+            try {
+                tag.load(dis);
+            } finally {
+                dis.exitTag();
+            }
             list.add((T) tag);
         }
     }

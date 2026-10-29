@@ -29,6 +29,7 @@ public class IntArrayTag extends Tag {
     @Override
     void load(NBTInputStream dis) throws IOException {
         int length = dis.readInt();
+        dis.checkCollectionLength(length, 4);
         data = new int[length];
         for (int i = 0; i < length; i++) {
             data[i] = dis.readInt();

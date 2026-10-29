@@ -80,12 +80,20 @@ public abstract class Tag {
     public static Tag readNamedTag(NBTInputStream dis) throws IOException {
         byte type = dis.readByte();
         if (type == 0) return new EndTag();
+        if (type < TAG_Byte || type > TAG_Int_Array) {
+            throw new IOException("Tipo de tag NBT desconhecido.");
+        }
 
         String name = dis.readUTF();
 
         Tag tag = newTag(type, name);
 
-        tag.load(dis);
+        dis.enterTag();
+        try {
+            tag.load(dis);
+        } finally {
+            dis.exitTag();
+        }
         return tag;
     }
 
