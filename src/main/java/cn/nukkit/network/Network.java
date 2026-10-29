@@ -123,54 +123,12 @@ public class Network {
     }
 
     public void processBatch(BatchPacket packet, Player player) {
-        byte[] data;
         try {
-            data = Zlib.inflate(packet.payload, 64 * 1024 * 1024);
-        } catch (Exception e) {
-            Server.getInstance().getLogger().logException(e);
-            return;
-        }
-
-        int len = data.length;
-        int offset = 0;
-        try {
-            List<DataPacket> packets = new ArrayList<>();
-            while (offset < len) {
-                int pkLen = Binary.readInt(Binary.subBytes(data, offset, 4));
-                offset += 4;
-
-                byte[] buf = Binary.subBytes(data, offset, pkLen);
-                offset += pkLen;
-
-                DataPacket pk;
-
-                if ((pk = this.getPacket(buf[0])) != null) {
-                    if (pk.pid() == ProtocolInfo.BATCH_PACKET) {
-                        throw new IllegalStateException("Invalid BatchPacket inside BatchPacket");
-                    }
-
-                    pk.setBuffer(buf, 1);
-
-                    pk.decode();
-
-                    packets.add(pk);
-
-                    if (pk.getOffset() <= 0) {
-                        return;
-                    }
-                }
-            }
-
-            processPackets(player, packets);
-
-        } catch (Exception e) {
-            if (Nukkit.DEBUG > 0) {
-                this.server.getLogger().debug("BatchPacket 0x" + Binary.bytesToHexString(packet.payload));
-                this.server.getLogger().logException(e);
-            }
+            processPackets(player, PacketDecoder.decodeBatch(packet.payload, this::getPacket));
+        } catch (java.io.IOException | RuntimeException e) {
+            player.close("", "Pacote de rede invalido.");
         }
     }
-
     /**
      * Process packets obtained from batch packets
      * Required to perform additional analyses and filter unnecessary packets
@@ -181,6 +139,9 @@ public class Network {
         if (packets.isEmpty()) return;
         List<Byte> filter = new ArrayList<>();
         for (DataPacket packet : packets) {
+            if (!player.isConnected()) {
+                break;
+            }
             switch (packet.pid()) {
                 case ProtocolInfo.USE_ITEM_PACKET:
                     // Prevent double fire of PlayerInteractEvent

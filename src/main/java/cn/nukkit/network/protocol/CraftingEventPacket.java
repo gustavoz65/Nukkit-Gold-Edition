@@ -26,12 +26,18 @@ public class CraftingEventPacket extends DataPacket {
         id = getUUID();
 
         int inputSize = getInt();
+        if (inputSize < 0 || inputSize > 128) {
+            throw new IllegalArgumentException("Quantidade de ingredientes invalida.");
+        }
         input = new Item[inputSize];
         for (int i = 0; i < inputSize && i < 128; ++i) {
             input[i] = getSlot();
         }
 
         int outputSize = getInt();
+        if (outputSize < 0 || outputSize > 128) {
+            throw new IllegalArgumentException("Quantidade de resultados invalida.");
+        }
         output = new Item[outputSize];
         for (int i = 0; i < outputSize && i < 128; ++i) {
             output[i] = getSlot();

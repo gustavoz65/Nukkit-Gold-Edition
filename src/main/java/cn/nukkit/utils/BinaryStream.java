@@ -72,11 +72,7 @@ public class BinaryStream {
     }
 
     public byte[] get(int len) {
-        if (len < 0) {
-            this.offset = this.count - 1;
-            return new byte[0];
-        }
-        len = Math.min(len, this.getCount() - this.offset);
+        this.requireAvailable(len);
         this.offset += len;
         return Arrays.copyOfRange(this.buffer, this.offset - len, this.offset);
     }
@@ -189,6 +185,7 @@ public class BinaryStream {
     }
 
     public byte getSignedByte() {
+        this.requireAvailable(1);
         return this.buffer[this.offset++];
     }
 
@@ -201,6 +198,7 @@ public class BinaryStream {
     }
 
     public int getByte() {
+        this.requireAvailable(1);
         return this.buffer[this.offset++] & 0xff;
     }
 
@@ -295,7 +293,17 @@ public class BinaryStream {
     }
 
     public boolean feof() {
-        return this.offset < 0 || this.offset >= this.buffer.length;
+        return this.offset < 0 || this.offset >= this.count;
+    }
+
+    public int remaining() {
+        return this.count - this.offset;
+    }
+
+    private void requireAvailable(int length) {
+        if (length < 0 || this.offset < 0 || this.offset > this.count || length > this.count - this.offset) {
+            throw new IllegalArgumentException("Pacote truncado ou tamanho de campo invalido.");
+        }
     }
 
     private void ensureCapacity(int minCapacity) {
