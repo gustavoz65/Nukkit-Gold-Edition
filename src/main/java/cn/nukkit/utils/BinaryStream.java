@@ -153,7 +153,7 @@ public class BinaryStream {
     }
 
     public float getFloat() {
-        return Binary.readFloat(this.get(4));
+        return checkedFloat(Binary.readFloat(this.get(4)));
     }
 
     public void putFloat(float v) {
@@ -161,7 +161,14 @@ public class BinaryStream {
     }
 
     public float getLFloat() {
-        return Binary.readLFloat(this.get(4));
+        return checkedFloat(Binary.readLFloat(this.get(4)));
+    }
+
+    private static float checkedFloat(float value) {
+        if (Float.isNaN(value) || Float.isInfinite(value)) {
+            throw new IllegalArgumentException("Valor numerico de pacote nao e finito.");
+        }
+        return value;
     }
 
     public void putLFloat(float v) {

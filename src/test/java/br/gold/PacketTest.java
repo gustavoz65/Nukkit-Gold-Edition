@@ -41,6 +41,12 @@ public final class PacketTest {
         rejeita(() -> PacketDecoder.decode(new byte[]{ProtocolInfo.TEXT_PACKET, 0, 0, 20, 65}, network::getPacket));
         rejeita(() -> new BinaryStream(new byte[4]).get(-1));
         rejeita(() -> new BinaryStream(new byte[4]).get(5));
+        BinaryStream naoFinito = new BinaryStream();
+        naoFinito.putFloat(Float.NaN);
+        rejeita(() -> new BinaryStream(naoFinito.getBuffer()).getFloat());
+        BinaryStream infinito = new BinaryStream();
+        infinito.putLFloat(Float.POSITIVE_INFINITY);
+        rejeita(() -> new BinaryStream(infinito.getBuffer()).getLFloat());
         for (int tamanho : new int[]{-1, 0, Integer.MAX_VALUE}) {
             BinaryStream invalido = new BinaryStream();
             invalido.putInt(tamanho);
