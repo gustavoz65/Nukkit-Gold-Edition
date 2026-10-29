@@ -2,7 +2,7 @@
 
 Servidor em Java para **Minecraft: Pocket Edition 0.15.10**, protocolo **84**, mantido por **gustavoz65**. Este fork parte do [Nukkit no commit b7378636c4cdea686eea998d53da2f3ffb8eec25](https://github.com/Nukkit/Nukkit/tree/b7378636c4cdea686eea998d53da2f3ffb8eec25), de 2016.
 
-O projeto começa pela preparação e evolução do core. Depois, os 86 plugins antigos em PHP serão reescritos em Java como a suíte modular **GoldSuite**. Essa suíte ainda não foi implementada.
+O core já recebeu a base Nukkit-Gold 0.1.0, uma primeira rodada de correções de segurança, registro de serviços, isolamento de falhas de plugins e suporte inicial a mobs hostis e spawners. A reescrita dos 86 plugins PHP começou pela base da suíte modular [GoldSuite](goldsuite/README.md), com SQLite assíncrono e HMAC, e pelo módulo inicial [GoldAuth](goldsuite/gold-auth/README.md), para registro e login. Os demais módulos de jogo ainda estão pendentes.
 
 ## Requisitos
 
@@ -50,6 +50,8 @@ java -Xmx1G -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar nukkit-gold.jar
 ```
 
 No Windows, `start.bat` também seleciona a página de código UTF-8 e usa `-Djline.terminal=jline.UnsupportedTerminal` antes de `-jar`, mais o argumento `disable-ansi` depois do jar. O `start.sh` aplica essas opções de terminal ao detectar Git Bash ou Cygwin. Isso evita a inicialização do terminal nativo de jline/jansi, que pode falhar nesse Nukkit antigo. O valor literal `unsupported`, previsto inicialmente, gera `Invalid terminal type` no JLine 2.14.6 incluído; por isso os iniciadores usam o nome completo da classe.
+
+O core também cuida do UTF-8 e seleciona o console simples no Windows ou em entrada redirecionada, inclusive ao executar diretamente com `java -jar`.
 
 ## Conectar pelo MCPE 0.15.10
 
@@ -108,6 +110,14 @@ Em 29/10/2026, no Windows com JDK 17, foram verificados o build de referência d
 Os iniciadores `.bat` e `.sh` pelo Git Bash foram testados com seleção de idioma `bra`, chegada a `Finalizado`, ping RakNet anunciando `84;0.15.10`, comando `list` e encerramento por `stop`, sem erro de terminal. O `start.bat` também foi testado sem argumentos com o jar ao lado do iniciador.
 
 Ainda não foram verificados um cliente MCPE 0.15.10 real, execução em Java 8, Linux/macOS nativos ou acesso pela internet. A compilação continua emitindo avisos de operações não verificadas do código original.
+
+## Evolução e testes atuais
+
+O core atual tem 1.052 fontes Java. As [alterações do core](docs/alteracoes-core.md) descrevem o motivo, os limites e a cobertura dos testes de cada grupo de mudanças. Execute `scripts/test.ps1` depois de compilar para rodar os sete programas de regressão sem frameworks externos.
+
+A [GoldSuite](goldsuite/README.md) tem build Gradle independente, com dependências locais. O [GoldCore inicial pronto](builds/plugins/GoldCore-0.1.0.jar) fornece a infraestrutura de armazenamento e assinatura. Instale também o [GoldAuth inicial](builds/plugins/GoldAuth-0.1.0.jar) em `plugins/` para registro e login. O [roadmap da reescrita](goldsuite/ROADMAP.md) distingue o que já foi implementado das funcionalidades pendentes.
+
+Foram testados também o jar direto com codificação padrão diferente de UTF-8, as correções de parser, login e limites, transferências de inventário, isolamento de falhas simuladas, registro e limpeza de serviços, criação e atualização de mobs, ataque de zumbi contra alvo simulado, cancelamento de spawn, limites de spawner e integração do GoldCore com SQLite real. A aparência, a jogabilidade e os itens assinados no cliente MCPE real ainda precisam de verificação.
 
 ## Roadmap
 
