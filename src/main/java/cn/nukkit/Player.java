@@ -1778,9 +1778,13 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         break;
                     }
 
-                    this.username = TextFormat.clean(loginPacket.username);
+                    if (!cn.nukkit.utils.PlayerName.isValid(loginPacket.username) || loginPacket.clientUUID == null || loginPacket.skin == null) {
+                        this.close("", "disconnectionScreen.invalidName");
+                        break;
+                    }
+                    this.username = loginPacket.username;
                     this.displayName = this.username;
-                    this.iusername = this.username.toLowerCase();
+                    this.iusername = this.username.toLowerCase(java.util.Locale.ROOT);
                     this.setDataProperty(new StringEntityData(DATA_NAMETAG, this.username), false);
 
                     if (this.server.getOnlinePlayers().size() >= this.server.getMaxPlayers() && this.kick(PlayerKickEvent.Reason.SERVER_FULL, "disconnectionScreen.serverFull", false)) {
@@ -1791,32 +1795,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     this.uuid = loginPacket.clientUUID;
                     this.rawUUID = Binary.writeUUID(this.uuid);
-
-                    boolean valid = true;
-                    int len = loginPacket.username.length();
-                    if (len > 16 || len < 3) {
-                        valid = false;
-                    }
-
-                    for (int i = 0; i < len && valid; i++) {
-                        char c = loginPacket.username.charAt(i);
-                        if ((c >= 'a' && c <= 'z') ||
-                                (c >= 'A' && c <= 'Z') ||
-                                (c >= '0' && c <= '9') ||
-                                c == '_' || c == ' '
-                                ) {
-                            continue;
-                        }
-
-                        valid = false;
-                        break;
-                    }
-
-                    if (!valid || Objects.equals(this.iusername, "rcon") || Objects.equals(this.iusername, "console")) {
-                        this.close("", "disconnectionScreen.invalidName");
-
-                        break;
-                    }
 
                     if (!loginPacket.skin.isValid()) {
                         this.close("", "disconnectionScreen.invalidSkin");
