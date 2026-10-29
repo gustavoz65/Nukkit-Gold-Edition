@@ -1,6 +1,6 @@
 # Build inicial 0.1.0
 
-Fonte validado no commit 6980fbc930f2262732e196f62e9b60139224a5f5, em 29/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
+Fonte validado no commit bd661274e50e606eb066d1e0b63c9caad5b5dc90, em 29/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
 
 - nukkit-gold-0.15.10.jar: core com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
 - plugins/GoldCore-0.1.0.jar: SQLite assincrono e assinatura HMAC.
