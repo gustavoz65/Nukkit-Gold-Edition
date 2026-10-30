@@ -1337,6 +1337,40 @@ public class Server {
         this.weatherEnabled = enabled;
     }
 
+    /**
+     * Liga/desliga o clima e grava em level-settings.weather no nukkit.yml sem reescrever o arquivo
+     * (os comentarios continuam). Retorna false se nao conseguiu gravar (o valor vale ate reiniciar).
+     */
+    public boolean saveWeatherEnabled(boolean enabled) {
+        this.weatherEnabled = enabled;
+        this.config.set("level-settings.weather", enabled);
+        java.nio.file.Path file = java.nio.file.Paths.get(this.dataPath + "nukkit.yml");
+        try {
+            java.util.List<String> lines = new java.util.ArrayList<>(java.nio.file.Files.readAllLines(file, java.nio.charset.StandardCharsets.UTF_8));
+            int section = -1;
+            boolean done = false;
+            for (int i = 0; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (line.startsWith("level-settings:")) { section = i; continue; }
+                if (section >= 0 && !line.isEmpty() && !Character.isWhitespace(line.charAt(0)) && !line.startsWith("#")) { break; }
+                if (section >= 0 && line.trim().startsWith("weather:")) {
+                    lines.set(i, line.substring(0, line.indexOf("weather:")) + "weather: " + enabled);
+                    done = true;
+                    break;
+                }
+            }
+            if (!done) {
+                if (section < 0) { lines.add("level-settings:"); section = lines.size() - 1; }
+                lines.add(section + 1, " weather: " + enabled);
+            }
+            java.nio.file.Files.write(file, lines, java.nio.charset.StandardCharsets.UTF_8);
+            return true;
+        } catch (java.io.IOException e) {
+            this.logger.warning("Nao foi possivel gravar level-settings.weather: " + e.getMessage());
+            return false;
+        }
+    }
+
     public float getTicksPerSecond() {
         return ((float) Math.round(this.maxTick * 100)) / 100;
     }

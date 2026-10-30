@@ -29,6 +29,22 @@ public class WeatherCommand extends VanillaCommand {
             return false;
         }
 
+        // /weather off | on: desliga ou religa o clima em todos os mundos, para sempre (grava no nukkit.yml).
+        if (args[0].equalsIgnoreCase("off") || args[0].equalsIgnoreCase("on")) {
+            boolean on = args[0].equalsIgnoreCase("on");
+            boolean saved = sender.getServer().saveWeatherEnabled(on);
+            if (!on) {
+                for (Level l : sender.getServer().getLevels().values()) { l.setRaining(false); l.setThundering(false); }
+            }
+            sender.sendMessage((on ? "Clima ligado: a chuva volta a acontecer normalmente." : "Clima desligado: nunca mais chove nem troveja em nenhum mundo.")
+                    + (saved ? " (salvo no nukkit.yml)" : " (vale ate reiniciar)"));
+            return true;
+        }
+        if (!sender.getServer().isWeatherEnabled() && !args[0].equalsIgnoreCase("clear")) {
+            sender.sendMessage("O clima esta desligado (/weather on para religar).");
+            return true;
+        }
+
         String weather = args[0];
         Level level;
         int seconds;
