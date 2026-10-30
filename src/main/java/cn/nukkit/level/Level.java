@@ -646,6 +646,17 @@ public class Level implements ChunkManager, Metadatable {
         this.checkTime();
 
         // Tick Weather
+        // level-settings.weather: false no nukkit.yml = nunca chove nem troveja (em todos os mundos).
+        if (!this.server.isWeatherEnabled()) {
+            if (this.raining) {
+                this.setRaining(false);
+            }
+            if (this.thundering) {
+                this.setThundering(false);
+            }
+            this.rainTime = Integer.MAX_VALUE;
+            this.thunderTime = Integer.MAX_VALUE;
+        }
         this.rainTime--;
         if (this.rainTime <= 0) {
             if (!this.setRaining(!this.raining)) {
