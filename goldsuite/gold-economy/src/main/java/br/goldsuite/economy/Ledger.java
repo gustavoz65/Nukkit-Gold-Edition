@@ -15,10 +15,13 @@ public final class Ledger {
         if (!PlayerName.isValid(name)) { throw new IllegalArgumentException("Jogador invalido."); }
         return name.toLowerCase(Locale.ROOT);
     }
-    public static long parse(String text, Currency currency) {
+    public static long parse(String text, Currency currency) { long amount = parseBalance(text, currency); positive(amount); return amount; }
+    /** Aceita zero; usado apenas para definir saldo. */
+    public static long parseBalance(String text, Currency currency) {
         if (text == null || !text.matches(currency == Currency.MONEY ? "[0-9]{1,12}([.,][0-9]{1,2})?" : "[0-9]{1,12}")) { throw new IllegalArgumentException("Informe um valor positivo, sem notacao cientifica."); }
         long amount = new BigDecimal(text.replace(',', '.')).movePointRight(currency == Currency.MONEY ? 2 : 0).longValueExact();
-        positive(amount); return amount;
+        if (amount > MAX_BALANCE) { throw new IllegalArgumentException("Valor fora do limite."); }
+        return amount;
     }
     public static String format(long amount, Currency currency) { return currency == Currency.MONEY ? BigDecimal.valueOf(amount, 2).toPlainString() : Long.toString(amount); }
     public long balance(String player, Currency currency) {

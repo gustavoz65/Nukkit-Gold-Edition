@@ -10,10 +10,10 @@ Base de contas offline, moedas, cash e transferências. O dinheiro usa centavos 
 /topmoney
 /economia adicionar money Gustavo 100.50
 /economia retirar cash Gustavo 2
-/economia definir money Gustavo 0
+/economia definir money Gustavo 0,00
 ```
 
-Administração exige `goldeconomy.admin` (padrão operador). Os demais comandos são públicos, mas jogadores precisam se autenticar quando GoldAuth está ativo. `/trocarcash` troca cada cash por 100 moedas; a operação inteira é persistida junta. Nomes não diferenciam maiúsculas e minúsculas. O destinatário de um pagamento pode estar offline. Não existe saldo inicial automático.
+Administração exige `goldeconomy.admin` (padrão operador). Os demais comandos são públicos, mas jogadores precisam se autenticar quando GoldAuth está ativo. `/trocarcash` troca cada cash por 100 moedas; a operação inteira é persistida junta. Nomes não diferenciam maiúsculas e minúsculas. O destinatário de um pagamento pode estar offline, mas precisa já ter entrado no servidor ou possuir conta; isso impede encher o limite de contas com nomes falsos. Cada jogador tem no máximo uma operação de `/pagar` ou `/trocarcash` pendente. Não existe saldo inicial automático.
 
 Limites: 10.000 contas, 1 MiB para o documento e 1.000.000.000.000 unidades mínimas por moeda. Valores negativos, zero em pagamentos, notação científica, excesso de casas decimais e pagamentos para si mesmo são recusados. O top ordena apenas ao executar o comando; hologramas e cache de ranking ainda serão integrados.
 

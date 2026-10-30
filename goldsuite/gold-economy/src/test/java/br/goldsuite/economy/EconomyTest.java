@@ -22,6 +22,8 @@ public final class EconomyTest {
         check(ledger.balance("alice", Currency.MONEY) == 36000 && ledger.balance("alice", Currency.CASH) == 2, "Conversao incorreta.");
         rejects(() -> ledger.exchange("alice", 3));
         check(Ledger.parse("1,23", Currency.MONEY) == 123 && Ledger.parse("2", Currency.CASH) == 2, "Precisao decimal perdida.");
+        check(Ledger.parseBalance("0,00", Currency.MONEY) == 0 && Ledger.parseBalance("0", Currency.CASH) == 0, "Definir saldo deve aceitar zero.");
+        rejects(() -> Ledger.parseBalance("1000000000000", Currency.CASH));
         for (String invalid : new String[] {"NaN", "Infinity", "1e9", "-1", "0", "1.001", "1000000000000"}) { rejects(() -> Ledger.parse(invalid, Currency.MONEY)); }
         Gson gson = new Gson();
         Ledger reopened = gson.fromJson(gson.toJson(ledger), Ledger.class);

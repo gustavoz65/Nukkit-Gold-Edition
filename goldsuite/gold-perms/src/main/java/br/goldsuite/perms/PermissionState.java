@@ -30,6 +30,13 @@ public final class PermissionState {
         return member == null || (member.expiresAt != 0 && member.expiresAt <= now) ? "padrao" : member.group;
     }
     public Map<String, Boolean> permissions(String name, long now) { return resolve(group(name, now), new HashSet<>()); }
+    /** Vincula ou, para padrao, remove o vinculo; nao guarda entradas redundantes. */
+    public void assign(String name, String group, long expiresAt) {
+        String key = player(name), target = groupName(group);
+        if (target.equals("padrao")) { members.remove(key); } else { members.put(key, new Member(target, expiresAt)); }
+    }
+    /** Remove vinculos expirados para que nao ocupem o limite nem bloqueiem a remocao de grupos. */
+    public void prune(long now) { members.values().removeIf(m -> m.expiresAt != 0 && m.expiresAt <= now); }
     private Map<String, Boolean> resolve(String name, Set<String> visited) {
         if (!visited.add(name)) { throw new IllegalArgumentException("Heranca circular de grupos."); }
         Group group = groups.get(name);

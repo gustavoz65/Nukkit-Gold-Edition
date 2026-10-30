@@ -8,10 +8,26 @@ import java.util.concurrent.CompletableFuture;
 /** Exercita APIs carregadas pelos jars reais, com SQLite e conclusoes na thread principal. */
 final class SuiteRegression {
     static CompletableFuture<Void> run(Server server) {
+        boolean economyInstalled = server.getPluginManager().getPlugin("GoldEconomy") != null;
+        boolean permsInstalled = server.getPluginManager().getPlugin("GoldPerms") != null;
+        if (!economyInstalled && !permsInstalled) { server.getLogger().info("GoldPerms e GoldEconomy ausentes; integracao ignorada."); return CompletableFuture.completedFuture(null); }
+        check(economyInstalled && permsInstalled, "Instale os dois modulos para testar a integracao.");
+        // Os servicos so sao registrados apos a carga assincrona de cada modulo.
+        return awaitServices(server, 200).thenCompose(ignored -> exercise(server));
+    }
+    private static CompletableFuture<Void> awaitServices(Server server, int ticksLeft) {
+        if (server.getServiceManager().load(EconomyService.class) != null && server.getServiceManager().load(PermissionService.class) != null) { return CompletableFuture.completedFuture(null); }
+        if (ticksLeft <= 0) { throw new AssertionError("GoldPerms ou GoldEconomy nao registraram o servico."); }
+        CompletableFuture<Void> next = new CompletableFuture<>();
+        server.getScheduler().scheduleDelayedTask(() -> {
+            try { awaitServices(server, ticksLeft - 1).whenComplete((v, e) -> { if (e == null) { next.complete(null); } else { next.completeExceptionally(e); } }); }
+            catch (Throwable error) { next.completeExceptionally(error); }
+        }, 1);
+        return next;
+    }
+    private static CompletableFuture<Void> exercise(Server server) {
         EconomyService economy = server.getServiceManager().load(EconomyService.class);
         PermissionService permissions = server.getServiceManager().load(PermissionService.class);
-        if (economy == null && permissions == null) { return CompletableFuture.completedFuture(null); }
-        check(economy != null && permissions != null, "Instale os dois modulos para testar a integracao.");
         Thread thread = Thread.currentThread();
         CompletableFuture<Void> start = CompletableFuture.completedFuture(null);
         for (String name : new String[] {"EcoTesteA", "EcoTesteB"}) {

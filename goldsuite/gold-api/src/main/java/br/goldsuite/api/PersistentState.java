@@ -3,6 +3,7 @@ package br.goldsuite.api;
 import com.google.gson.Gson;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** Estado limitado a 1 MiB, com alteracoes serializadas e publicacao apos persistir.
@@ -16,6 +17,7 @@ public final class PersistentState<T> {
     private final String namespace;
     private final Class<T> type;
     private final Consumer<T> validator;
+    private final CompletableFuture<Void> loaded;
     private CompletableFuture<Void> tail;
     private T state;
     private boolean closed;
@@ -23,20 +25,28 @@ public final class PersistentState<T> {
 
     public PersistentState(AsyncStore store, String namespace, Class<T> type, Supplier<T> defaults, Consumer<T> validator) {
         this.store = store; this.namespace = namespace; this.type = type; this.validator = validator;
-        this.tail = store.get(namespace, "estado").thenAccept(value -> {
+        this.loaded = store.get(namespace, "estado").thenAccept(value -> {
             checkThread();
-            T loaded = value.isPresent() ? gson.fromJson(value.get(), type) : defaults.get();
-            validator.accept(loaded);
-            this.state = loaded;
+            T initial = value.isPresent() ? gson.fromJson(value.get(), type) : defaults.get();
+            validator.accept(initial);
+            this.state = initial;
         });
+        this.tail = loaded;
     }
 
-    public CompletableFuture<Void> ready() { checkThread(); return tail; }
-    public T snapshot() {
+    /** Conclui quando a carga inicial termina; nao depende das gravacoes pendentes. */
+    public CompletableFuture<Void> ready() { checkThread(); return loaded; }
+    public boolean isLoaded() { checkThread(); return !closed && state != null; }
+
+    /** Leitura sem copia do estado confirmado. A funcao nao pode alterar o objeto recebido. */
+    public <R> R read(Function<T, R> query) {
         checkThread();
         if (closed || state == null) { throw new IllegalStateException("Dados indisponiveis. Aguarde a inicializacao."); }
-        return gson.fromJson(gson.toJson(state), type);
+        return query.apply(state);
     }
+
+    /** Copia profunda; use apenas quando precisar alterar o resultado. */
+    public T snapshot() { return read(current -> gson.fromJson(gson.toJson(current), type)); }
 
     public CompletableFuture<Void> change(Consumer<T> mutation) {
         checkThread();

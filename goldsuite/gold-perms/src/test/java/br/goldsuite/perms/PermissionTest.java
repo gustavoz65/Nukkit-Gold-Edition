@@ -23,6 +23,15 @@ public final class PermissionTest {
         state.groups.remove("vip");
         rejects(() -> PermissionState.validate(state));
         rejects(() -> PermissionState.player("../admin"));
+        PermissionState links = new PermissionState();
+        links.groups.put("vip", new PermissionState.Group());
+        links.assign("Ana", "vip", 0);
+        links.assign("Ana", "padrao", 0);
+        check(links.members.isEmpty(), "Voltar a padrao deve remover o vinculo.");
+        links.assign("Bia", "vip", 1500);
+        links.assign("Caio", "vip", 0);
+        links.prune(1500);
+        check(!links.members.containsKey("bia") && links.members.containsKey("caio"), "Vinculo expirado nao foi descartado.");
 
         MemoryStore store = new MemoryStore();
         PersistentState<PermissionState> data = new PersistentState<>(store, "teste", PermissionState.class, PermissionState::new, PermissionState::validate);
@@ -30,6 +39,7 @@ public final class PermissionTest {
         CompletableFuture<Void> second = data.change(s -> s.groups.put("dois", new PermissionState.Group()));
         check(!first.isDone() && !second.isDone(), "Escrita nao pode ser confirmada antes do armazenamento.");
         check(data.snapshot().groups.size() == 1, "Estado nao confirmado ficou visivel.");
+        check(data.read(st -> st.groups.size()) == 1 && data.ready().isDone(), "Leitura ou carga dependem de gravacao pendente.");
         store.complete(true);
         check(first.isDone() && !second.isDone(), "Fila perdeu a ordem.");
         store.complete(true);
