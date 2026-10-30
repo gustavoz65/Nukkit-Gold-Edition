@@ -5,7 +5,7 @@
 set -euo pipefail
 
 raiz="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-versao="${VERSAO:-0.3.0}"
+versao="${VERSAO:-0.3.2}"
 # Java embutido: runtime OpenJDK do pacote jdk4py (PyPI), mesma versao do instalador Windows.
 java_pacote="jdk4py==25.0.2.1"
 java_hash="383d71d8639d072752d2eaafc84944e0d8de7f1c45d30c28f6dfef8a4a65543c"

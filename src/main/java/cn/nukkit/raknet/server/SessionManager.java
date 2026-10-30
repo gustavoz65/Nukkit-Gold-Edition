@@ -39,7 +39,10 @@ public class SessionManager {
     protected long ticks = 0;
     protected long lastMeasure;
 
-    protected final Map<String, Long> block = new HashMap<>();
+    /** Anti-DDoS de aplicacao (limites por IP e modo ataque); os bloqueios ficam nele. */
+    protected final Shield shield = Shield.fromConfig();
+    protected final Map<String, Long> block = shield.blocked;
+    private long lastRefusalLog;
     protected final Map<String, Integer> ipSec = new HashMap<>();
 
     public boolean portChecking = true;
@@ -54,6 +57,7 @@ public class SessionManager {
         this.registerPackets();
 
         this.serverId = new Random().nextLong();
+        Shield.current = this.shield;
 
         this.run();
     }
@@ -123,17 +127,9 @@ public class SessionManager {
             this.sendBytes = 0;
             this.receiveBytes = 0;
 
+            // Antes so liberava ate o primeiro bloqueio ativo (o HashMap nao tem ordem): IPs ficavam presos.
             if (!this.block.isEmpty()) {
-                long now = System.currentTimeMillis();
-                for (String address : new ArrayList<>(this.block.keySet())) {
-                    long timeout = this.block.get(address);
-                    if (timeout <= now) {
-                        this.block.remove(address);
-                        this.getLogger().notice("Unblocked " + address);
-                    } else {
-                        break;
-                    }
-                }
+                for (String address : this.shield.expire(System.currentTimeMillis())) { this.getLogger().notice("Desbloqueado " + address); }
             }
         }
 
@@ -147,7 +143,12 @@ public class SessionManager {
             try {
                 String source = datagramPacket.sender().getHostString();
                 currentSource = source; //in order to block address
-                if (this.block.containsKey(source)) {
+                long now = System.currentTimeMillis();
+                if (this.shield.isBlocked(source, now)) {
+                    return true;
+                }
+                if (!this.shield.packet(source, now)) {
+                    this.blockAddress(source, this.shield.blockSeconds);
                     return true;
                 }
 
@@ -177,10 +178,21 @@ public class SessionManager {
 
                 Packet packet = this.getPacketFromPool(pid);
                 if (packet != null) {
+                    Session session = this.sessions.get(source + ":" + port);
+                    if (session == null) {
+                        String refused = this.shield.newSession(source, this.countSessions(source), now);
+                        if (refused != null) {
+                            if (now - this.lastRefusalLog > 5000) { this.lastRefusalLog = now; this.getLogger().notice("Anti-DDoS: conexao de " + source + " recusada (" + refused + ")"); }
+                            return true;
+                        }
+                    }
                     packet.buffer = buffer;
                     this.getSession(source, port).handlePacket(packet);
                     return true;
                 } else if (pid == UNCONNECTED_PING.ID) {
+                    if (!this.shield.ping(source, now)) {
+                        return true;
+                    }
                     packet = new UNCONNECTED_PING();
                     packet.buffer = buffer;
                     packet.decode();
@@ -412,12 +424,18 @@ public class SessionManager {
             if (timeout == -1) {
                 finalTime = Long.MAX_VALUE;
             } else {
-                this.getLogger().notice("Blocked " + address + " for " + timeout + " seconds");
+                this.getLogger().notice("Anti-DDoS: " + address + " bloqueado por " + timeout + " s");
             }
             this.block.put(address, finalTime);
         } else if (this.block.get(address) < finalTime) {
             this.block.put(address, finalTime);
         }
+    }
+
+    private int countSessions(String ip) {
+        int n = 0;
+        for (Session s : this.sessions.values()) { if (s.getAddress().equals(ip)) { n++; } }
+        return n;
     }
 
     public Session getSession(String ip, int port) {

@@ -1,0 +1,65 @@
+{
+    "_comment": "Egg do Pterodactyl para o Nukkit Gold (MCPE 0.15.10, protocolo 84). Importe em Admin > Nests > Import Egg.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-10-30T00:00:00+00:00",
+    "name": "Nukkit Gold (MCPE 0.15.10)",
+    "author": "gustavoz65@users.noreply.github.com",
+    "description": "Servidor Nukkit Gold para Minecraft PE 0.15.10 com anti-DDoS no RakNet. Cria o nukkit.yml em portugues na instalacao (nao pergunta o idioma) e opcionalmente instala o Pack Gold Plugins.",
+    "features": null,
+    "docker_images": {
+        "Java 21": "ghcr.io/pterodactyl/yolks:java_21",
+        "Java 17": "ghcr.io/pterodactyl/yolks:java_17",
+        "Java 11": "ghcr.io/pterodactyl/yolks:java_11",
+        "Java 8": "ghcr.io/pterodactyl/yolks:java_8"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{\n    \"server.properties\": {\n        \"parser\": \"properties\",\n        \"find\": {\n            \"server-ip\": \"0.0.0.0\",\n            \"server-port\": \"{{server.build.default.port}}\"\n        }\n    }\n}",
+        "startup": "{\n    \"done\": \")! \"\n}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Instalacao do Nukkit Gold no Pterodactyl\nset -e\napt update -y >/dev/null && apt install -y curl unzip >/dev/null\nmkdir -p /mnt/server && cd /mnt/server\nJAR=\"${SERVER_JARFILE:-nukkit-gold.jar}\"\necho \"Baixando o Nukkit Gold de ${NUKKIT_GOLD_URL}\"\ncurl -fsSL -o \"$JAR\" \"$NUKKIT_GOLD_URL\"\n# nukkit.yml em portugues: o servidor nao para pedindo o idioma\nif [ ! -f nukkit.yml ]; then unzip -p \"$JAR\" lang/bra/nukkit.yml > nukkit.yml; fi\nif [ ! -f server.properties ]; then printf 'server-port=%s\\nserver-ip=0.0.0.0\\nmotd=Nukkit Gold\\n' \"${SERVER_PORT:-19132}\" > server.properties; fi\nmkdir -p plugins worlds\nif [ -n \"$PLUGINS_URL\" ]; then\n  echo \"Baixando plugins de ${PLUGINS_URL}\"\n  curl -fsSL -o /tmp/pack.zip \"$PLUGINS_URL\"\n  rm -rf /tmp/pack && mkdir /tmp/pack && unzip -q /tmp/pack.zip -d /tmp/pack\n  # Versoes antigas dos plugins Gold ficariam duplicadas\n  rm -f plugins/Gold*-*.jar\n  find /tmp/pack -path '*/plugins/*.jar' -exec cp {} plugins/ \\;\n  HG=\"$(find /tmp/pack -type d -path '*/worlds/HG' | head -1)\"\n  if [ -n \"$HG\" ] && [ ! -d worlds/HG ]; then cp -r \"$HG\" worlds/; fi\nfi\necho \"Nukkit Gold instalado.\"\n",
+            "container": "ghcr.io/pterodactyl/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Arquivo do servidor",
+            "description": "Nome do jar do servidor.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "nukkit-gold.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+            "field_type": "text"
+        },
+        {
+            "name": "URL do Nukkit Gold",
+            "description": "Link direto do jar (ex.: builds/nukkit-gold-0.15.10.jar do repositorio ou um anexo da release).",
+            "env_variable": "NUKKIT_GOLD_URL",
+            "default_value": "https://raw.githubusercontent.com/gustavoz65/nukkit-gold-edition/main/builds/nukkit-gold-0.15.10.jar",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "required|url",
+            "field_type": "text"
+        },
+        {
+            "name": "URL do Pack Gold Plugins (opcional)",
+            "description": "Link direto do Pack-Gold-Plugins-x.y.z.zip da release. Vazio = nao instala plugins.",
+            "env_variable": "PLUGINS_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": false,
+            "rules": "nullable|url",
+            "field_type": "text"
+        }
+    ]
+}

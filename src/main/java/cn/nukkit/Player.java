@@ -1502,6 +1502,13 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return false;
         }
 
+        // Bloco colado no jogador (ponte agachado na beirada, bloco embaixo/atras dos pes): o centro dele fica
+        // "atras" da direcao do olhar e era recusado, o bloco sumia e o jogador caia. Ao alcance do corpo, sempre vale.
+        double hx = pos.x - this.x, hz = pos.z - this.z;
+        if (hx * hx + hz * hz <= 2.25 && Math.abs(pos.y - this.y) <= 2.5) {
+            return true;
+        }
+
         Vector2 dV = this.getDirectionPlane();
         double dot = dV.dot(new Vector2(this.x, this.z));
         double dot1 = dV.dot(new Vector2(pos.x, pos.z));

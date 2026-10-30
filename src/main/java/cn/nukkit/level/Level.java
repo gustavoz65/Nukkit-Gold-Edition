@@ -1849,18 +1849,25 @@ public class Level implements ChunkManager, Metadatable {
             Entity[] entities = this.getCollidingEntities(hand.getBoundingBox());
             int realCount = 0;
             for (Entity e : entities) {
-                if (e instanceof EntityArrow || e instanceof EntityItem || (e instanceof Player && ((Player) e).isSpectator())) {
+                if (e instanceof EntityArrow || e instanceof EntityItem || (e instanceof Player && ((Player) e).isSpectator()) || e == player) {
                     continue;
                 }
                 ++realCount;
             }
 
+            // Quem coloca e testado com a caixa levemente reduzida e so com o movimento horizontal previsto:
+            // na ponte (ou caindo/pulando um pouco) os pes encostam no bloco novo por milimetros e ele era recusado.
             if (player != null) {
-                Vector3 diff = player.getNextPosition().subtract(player.getPosition());
-                if (diff.lengthSquared() > 0.00001) {
-                    AxisAlignedBB bb = player.getBoundingBox().getOffsetBoundingBox(diff.x, diff.y, diff.z);
-                    if (hand.getBoundingBox().intersectsWith(bb)) {
-                        ++realCount;
+                AxisAlignedBB self = player.getBoundingBox().shrink(0.05, 0.1, 0.05);
+                if (hand.getBoundingBox().intersectsWith(self)) {
+                    ++realCount;
+                } else {
+                    Vector3 diff = player.getNextPosition().subtract(player.getPosition());
+                    if (diff.x * diff.x + diff.z * diff.z > 0.00001) {
+                        AxisAlignedBB bb = self.getOffsetBoundingBox(diff.x, 0, diff.z);
+                        if (hand.getBoundingBox().intersectsWith(bb)) {
+                            ++realCount;
+                        }
                     }
                 }
             }
