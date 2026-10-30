@@ -34,11 +34,24 @@ else
     exit 1
 fi
 # Git Bash e Cygwin tambem precisam evitar o terminal nativo no Windows.
+opcoes_terminal=()
+argumentos_extra=()
 case "${OSTYPE:-}" in
     msys*|cygwin*)
-        exec "$java_exe" -Xmx1G ${java_opcoes[@]+"${java_opcoes[@]}"} -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Djline.terminal=jline.UnsupportedTerminal -jar "$arquivo_jar" disable-ansi "$@"
-        ;;
-    *)
-        exec "$java_exe" -Xmx1G ${java_opcoes[@]+"${java_opcoes[@]}"} -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar "$arquivo_jar" "$@"
+        opcoes_terminal=(-Djline.terminal=jline.UnsupportedTerminal)
+        argumentos_extra=(disable-ansi)
         ;;
 esac
+# Se um plugin deixar reiniciar.servidor (ex.: /restart), o servidor abre de novo sozinho.
+while true; do
+    status=0
+    "$java_exe" -Xmx1G ${java_opcoes[@]+"${java_opcoes[@]}"} -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 ${opcoes_terminal[@]+"${opcoes_terminal[@]}"} \
+        -jar "$arquivo_jar" ${argumentos_extra[@]+"${argumentos_extra[@]}"} "$@" || status=$?
+    if [[ -f reiniciar.servidor ]]; then
+        rm -f reiniciar.servidor
+        printf 'Reiniciando em 3 segundos...\n'
+        sleep 3
+        continue
+    fi
+    exit "$status"
+done

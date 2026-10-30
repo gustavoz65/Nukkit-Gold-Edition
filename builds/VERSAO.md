@@ -1,8 +1,13 @@
-# Build inicial 0.1.0
+# Nukkit Gold 0.2.0
 
-Fonte validado no commit bd661274e50e606eb066d1e0b63c9caad5b5dc90, em 29/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
+Compilado em 30/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
 
-- nukkit-gold-0.15.10.jar: core com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+- nukkit-gold-0.15.10.jar: core 0.2.0 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+
+Novidades da 0.2.0 (30/10/2026):
+- Fim do puxao do jogador na borda dos blocos (colisao com margem igual a do cliente).
+- Iniciadores (iniciar.cmd e start.sh) reabrem o servidor quando um plugin pede restart (arquivo reiniciar.servidor).
+- Instaladores aceitam PLUGINS_DIR; a release 0.2.0 traz os 23 plugins do Pack-Gold-Plugins 0.2.0.
 
 SHA-256 em SHA256SUMS.
 
