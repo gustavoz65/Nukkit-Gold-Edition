@@ -4077,6 +4077,40 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.dataPacket(pk);
     }
 
+    /** Margem com que o cliente encosta nos blocos; sem ela o servidor via colisao na borda e revertia o movimento. */
+    static final double MOVE_TOLERANCE_XZ = 0.05;
+    static final double MOVE_TOLERANCE_Y = 0.02;
+
+    /**
+     * Igual ao movimento da entidade, mas a colisao e testada com a caixa levemente reduzida. Pular sobre
+     * um bloco ou andar rente a borda deixava a caixa encostada por fracoes de bloco, o movimento inteiro
+     * era recusado e o jogador era puxado de volta. Entrar de fato num bloco continua bloqueado.
+     */
+    @Override
+    public boolean fastMove(double dx, double dy, double dz) {
+        if (dx == 0 && dy == 0 && dz == 0) {
+            return true;
+        }
+        Timings.entityMoveTimer.startTiming();
+        AxisAlignedBB newBB = this.boundingBox.getOffsetBoundingBox(dx, dy, dz);
+        if (server.getAllowFlight() || !this.level.hasCollision(this, newBB.shrink(MOVE_TOLERANCE_XZ, MOVE_TOLERANCE_Y, MOVE_TOLERANCE_XZ), false)) {
+            this.boundingBox = newBB;
+        }
+        this.x = (this.boundingBox.minX + this.boundingBox.maxX) / 2;
+        this.y = this.boundingBox.minY - this.ySize;
+        this.z = (this.boundingBox.minZ + this.boundingBox.maxZ) / 2;
+        this.checkChunks();
+        if (!this.onGround || dy != 0) {
+            AxisAlignedBB bb = this.boundingBox.clone();
+            bb.minY -= 0.75;
+            this.onGround = this.level.getCollisionBlocks(bb).length > 0;
+        }
+        this.isCollided = this.onGround;
+        this.updateFallState(this.onGround);
+        Timings.entityMoveTimer.stopTiming();
+        return true;
+    }
+
     public void setCheckMovement(boolean checkMovement) {
         this.checkMovement = checkMovement;
     }

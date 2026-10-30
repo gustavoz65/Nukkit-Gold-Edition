@@ -13,6 +13,4 @@ Rodar em segundo plano (sobrevive ao fechar o SSH):
     screen -S nukkit ./start.sh        (sair sem parar: Ctrl+A e depois D; voltar: screen -r nukkit)
 
 Atualizar: extraia o pacote novo por cima desta pasta. Mundos (worlds/), jogadores (players/),
-plugins/GoldCore (banco SQLite) e configuracoes sao preservados.
-
-Plugins incluidos: GoldCore, GoldAuth, GoldPerms e GoldEconomy.
+plugins/ e configuracoes sao preservados.

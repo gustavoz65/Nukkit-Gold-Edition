@@ -2,7 +2,7 @@
 
 Servidor em Java para **Minecraft: Pocket Edition 0.15.10**, protocolo **84**, mantido por **gustavoz65**. Este fork parte do [Nukkit no commit b7378636c4cdea686eea998d53da2f3ffb8eec25](https://github.com/Nukkit/Nukkit/tree/b7378636c4cdea686eea998d53da2f3ffb8eec25), de 2016.
 
-O core já recebeu a base Nukkit-Gold 0.1.0, uma primeira rodada de correções de segurança, registro de serviços, isolamento de falhas de plugins e suporte inicial a mobs hostis e spawners. A reescrita dos 86 plugins PHP começou pela base da suíte modular [GoldSuite](goldsuite/README.md), com SQLite assíncrono e HMAC, e pelo módulo inicial [GoldAuth](goldsuite/gold-auth/README.md), para registro e login. Os demais módulos de jogo ainda estão pendentes.
+O core já recebeu a base Nukkit-Gold 0.1.0, uma primeira rodada de correções de segurança, registro de serviços, isolamento de falhas de plugins e suporte inicial a mobs hostis e spawners. Este repositório contém apenas o core do servidor.
 
 ## Instalar no Windows
 
@@ -10,7 +10,7 @@ O core já recebeu a base Nukkit-Gold 0.1.0, uma primeira rodada de correções 
 2. Abra o arquivo e clique em **Avançar** até o fim. Não precisa de administrador nem de Java instalado.
 3. Abra o atalho **Nukkit Gold** na área de trabalho.
 
-O instalador coloca o servidor em `C:\Users\<você>\NukkitGold` (dá para trocar a pasta), já com Java 25, GoldCore, GoldAuth e o idioma em português. Ele cria atalhos na área de trabalho e no menu Iniciar, incluindo **Pasta do servidor** (onde ficam `plugins/`, `worlds/` e `server.properties`), e registra o programa em **Configurações > Aplicativos** para desinstalar.
+O instalador coloca o servidor em `C:\Users\<você>\NukkitGold` (dá para trocar a pasta), já com Java 25 e o idioma em português. Ele cria atalhos na área de trabalho e no menu Iniciar, incluindo **Pasta do servidor** (onde ficam `plugins/`, `worlds/` e `server.properties`), e registra o programa em **Configurações > Aplicativos** para desinstalar.
 
 Para atualizar, rode o instalador de uma versão nova por cima: mundos, jogadores e configurações são mantidos. Se o servidor estiver aberto, o instalador pede para ele salvar e desligar sozinho (criando o arquivo `parar.servidor`, que o core verifica a cada segundo); se não houver resposta em 30 segundos, como numa versão anterior a essa, o processo é encerrado à força e perde só o que mudou desde o último salvamento automático. Ao desinstalar, o padrão é manter esses dados; eles só são apagados se você responder **Sim** na pergunta.
 
@@ -131,9 +131,7 @@ Ainda não foram verificados um cliente MCPE 0.15.10 real, execução em Java 8,
 
 O core atual tem 1.052 fontes Java. As [alterações do core](docs/alteracoes-core.md) descrevem o motivo, os limites e a cobertura dos testes de cada grupo de mudanças. Execute `scripts/test.ps1` depois de compilar para rodar os sete programas de regressão sem frameworks externos.
 
-A [GoldSuite](goldsuite/README.md) tem build Gradle independente, com dependências locais. O [GoldCore inicial pronto](builds/plugins/GoldCore-0.1.0.jar) fornece a infraestrutura de armazenamento e assinatura. Instale também o [GoldAuth inicial](builds/plugins/GoldAuth-0.1.0.jar) em `plugins/` para registro e login. O [roadmap da reescrita](goldsuite/ROADMAP.md) distingue o que já foi implementado das funcionalidades pendentes.
-
-Foram testados também o jar direto com codificação padrão diferente de UTF-8, as correções de parser, login e limites, transferências de inventário, isolamento de falhas simuladas, registro e limpeza de serviços, criação e atualização de mobs, ataque de zumbi contra alvo simulado, cancelamento de spawn, limites de spawner e integração do GoldCore com SQLite real. A aparência, a jogabilidade e os itens assinados no cliente MCPE real ainda precisam de verificação.
+Foram testados também o jar direto com codificação padrão diferente de UTF-8, as correções de parser, login e limites, transferências de inventário, isolamento de falhas simuladas, registro e limpeza de serviços, criação e atualização de mobs, ataque de zumbi contra alvo simulado, cancelamento de spawn e limites de spawner. A aparência e a jogabilidade no cliente MCPE real ainda precisam de verificação.
 
 ## Roadmap
 
@@ -144,7 +142,6 @@ O passo 0 prepara a documentação de instalação, os scripts de build e os ini
 3. **Registro de serviços:** implementar um `ServiceManager` simples para comunicação entre plugins.
 4. **Isolamento de plugins:** tratar também falhas como `LinkageError` nas chamadas de eventos e comandos para conter erros dos plugins.
 5. **Mobs:** adicionar zumbi, esqueleto, aranha e outros com IDs de rede da 0.15, IA simples, spawn natural e `BlockEntityMobSpawner`.
-6. **GoldSuite:** reescrever os 86 plugins PHP em módulos Java, começando pelas interfaces de `gold-api` e pela base comum de `gold-core`, com integrações opcionais isoladas.
 
 ## Créditos e licença
 

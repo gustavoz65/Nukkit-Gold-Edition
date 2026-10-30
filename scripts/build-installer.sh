@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Gera o instalador Windows (build/NukkitGold-Setup-<versao>.exe) a partir dos jars validados em builds/.
+# Gera o instalador Windows (build/NukkitGold-Setup-<versao>.exe) a partir do core validado em builds/.
+# Opcional: PLUGINS_DIR=pasta com .jar para incluir na pasta plugins/ do servidor.
 # Requer: makensis (pacote nsis), python3 com pip e unzip. Roda em Linux; nao precisa de Windows.
 set -euo pipefail
 
 raiz="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-versao="${VERSAO:-0.1.0}"
+versao="${VERSAO:-0.3.0}"
 # Java embutido: runtime OpenJDK do pacote jdk4py (PyPI), fixado por versao e hash.
 java_pacote="jdk4py==25.0.2.1"
 java_hash="5f0ad2e8f7ad3b40eef8af75062d830afd3feccca62fc03db611b2e9a5fa9824"
@@ -19,9 +20,9 @@ rm -rf -- "$trabalho"
 mkdir -p "$origem/plugins" "$trabalho/java"
 
 cp "$raiz/builds/nukkit-gold-0.15.10.jar" "$origem/nukkit-gold.jar"
-for plugin in GoldCore GoldAuth GoldPerms GoldEconomy; do
-    cp "$raiz/builds/plugins/$plugin-$versao.jar" "$origem/plugins/"
-done
+if [[ -n "${PLUGINS_DIR:-}" ]]; then
+    cp "$PLUGINS_DIR"/*.jar "$origem/plugins/"
+fi
 cp "$raiz/start.bat" "$raiz/LICENSE" "$raiz/installer/iniciar.cmd" "$raiz/installer/nukkit-gold.ico" "$origem/"
 # Mesmo arquivo que o servidor gera ao escolher "bra" na primeira execucao.
 unzip -p "$origem/nukkit-gold.jar" lang/bra/nukkit.yml > "$origem/nukkit.yml"

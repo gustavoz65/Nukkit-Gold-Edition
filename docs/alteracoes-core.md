@@ -31,11 +31,11 @@ Eventos e comandos contêm falhas não fatais de plugins, inclusive `LinkageErro
 
 O teste de integração lança `NoClassDefFoundError` de propósito em um evento e em um comando. O listener seguinte, um comando posterior e o ping continuam funcionando. Os avisos dessas duas falhas são esperados nesse teste; eles não são emitidos pelo servidor normal sem o plugin de regressão.
 
-`ServerScheduler.executeAsyncTask` oferece início imediato no pool e conclusão por `onCompletion` na thread principal. O GoldCore usa esse caminho para poder terminar uma escrita enfileirada durante o mesmo tick em que recebe o desligamento, sem depender de outro heartbeat para iniciar o trabalho.
+`ServerScheduler.executeAsyncTask` oferece início imediato no pool e conclusão por `onCompletion` na thread principal. Assim um plugin consegue terminar uma escrita enfileirada durante o mesmo tick em que recebe o desligamento, sem depender de outro heartbeat para iniciar o trabalho.
 
 Os comandos lidos do console são agendados na thread principal, para que comandos de plugins não alterem Player/Level na thread do leitor. O teste digita um comando que confere a identidade da thread, seguido de `list` e `stop`.
 
-O teste do GoldAuth expôs outro defeito antigo: tarefas não recebiam seu TaskHandler e não podiam cancelar a si mesmas. O agendador agora vincula tarefa e handler antes de publicar o trabalho, preserva onCancel, evita reagendar uma tarefa cancelada e chama o cancelamento apenas uma vez. O teste integrado executa e cancela uma tarefa repetitiva e confere esses invariantes.
+Outro defeito antigo: tarefas não recebiam seu TaskHandler e não podiam cancelar a si mesmas. O agendador agora vincula tarefa e handler antes de publicar o trabalho, preserva onCancel, evita reagendar uma tarefa cancelada e chama o cancelamento apenas uma vez. O teste integrado executa e cancela uma tarefa repetitiva e confere esses invariantes.
 
 ## Mobs e spawners
 
@@ -70,20 +70,16 @@ Referências dos identificadores: [zumbi no PocketMine histórico](https://githu
 | Criativo isolado | Itens com NBT não podiam ser reorganizados no criativo, e o `force` anterior executava a transação inteira em qualquer janela, o que permitia clonar itens de baús. Agora só o inventário do jogador e a armadura aceitam a troca livre, e apenas quando os dois itens existem no menu criativo |
 | Erros de rede registrados | Erros ao tratar um pacote válido eram descartados sem log. Pacote malformado continua gerando só uma linha de debug; erro interno gera log completo e encerra a sessão com mensagem própria |
 | `StackOverflowError` contido | Recursão infinita num plugin derrubava o servidor; agora é tratada como falha do plugin. `OutOfMemoryError` e as demais falhas da JVM continuam sendo propagadas |
+| Puxão na borda dos blocos | O movimento do jogador era recusado inteiro quando a caixa de colisão encostava por frações de bloco num canto (subir pulando num degrau ou andar rente à borda), e o servidor puxava o jogador de volta. A colisão do jogador agora é testada com a caixa reduzida em 0,05 na horizontal e 0,02 na vertical; entrar de fato num bloco continua bloqueado. Coberto pelo teste integrado de movimento |
 | Token de login nos dois alfabetos | O decode aceitava só base64url; tokens no alfabeto padrão eram recusados |
-| HMAC sem quantidade e desgaste | Itens assinados ficavam inválidos ao dividir a pilha ou ao usar a ferramenta |
-| GoldAuth por falhas | O limite contava logins corretos e bloqueava jogadores atrás do mesmo IP; no pico, o semáforo recusava logins em vez de enfileirar |
 
 ## Reproduzir os testes
 
 ```powershell
 .\scripts\build.bat
 .\scripts\test.ps1
-cd goldsuite
-.\gradlew.bat --offline check jar
-cd ..
 .\scripts\build-test-plugin.ps1
 .\scripts\test-integration.ps1
 ```
 
-Os testes unitários usam programas Java comuns. O plugin `build/gold-core-regression.jar` deve ser instalado apenas num servidor de testes isolado, junto com GoldCore e sua API compilada. Ele altera e restaura blocos do mundo de teste e provoca falhas controladas; não deve ser instalado no servidor de uso normal.
+Os testes unitários usam programas Java comuns. O plugin `build/gold-core-regression.jar` deve ser instalado apenas num servidor de testes isolado. Ele altera e restaura blocos do mundo de teste e provoca falhas controladas; não deve ser instalado no servidor de uso normal.

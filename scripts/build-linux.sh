@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Gera o pacote Linux (build/NukkitGold-<versao>-linux-x64.tar.gz) a partir dos jars validados em builds/.
+# Gera o pacote Linux (build/NukkitGold-<versao>-linux-x64.tar.gz) a partir do core validado em builds/.
+# Opcional: PLUGINS_DIR=pasta com .jar para incluir na pasta plugins/ do servidor.
 # Requer: python3 com pip, unzip e tar. Para usar: extrair e rodar ./start.sh.
 set -euo pipefail
 
 raiz="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-versao="${VERSAO:-0.1.0}"
+versao="${VERSAO:-0.3.0}"
 # Java embutido: runtime OpenJDK do pacote jdk4py (PyPI), mesma versao do instalador Windows.
 java_pacote="jdk4py==25.0.2.1"
 java_hash="383d71d8639d072752d2eaafc84944e0d8de7f1c45d30c28f6dfef8a4a65543c"
@@ -20,9 +21,9 @@ rm -rf -- "$trabalho"
 mkdir -p "$origem/plugins" "$trabalho/java"
 
 cp "$raiz/builds/nukkit-gold-0.15.10.jar" "$origem/nukkit-gold.jar"
-for plugin in GoldCore GoldAuth GoldPerms GoldEconomy; do
-    cp "$raiz/builds/plugins/$plugin-$versao.jar" "$origem/plugins/"
-done
+if [[ -n "${PLUGINS_DIR:-}" ]]; then
+    cp "$PLUGINS_DIR"/*.jar "$origem/plugins/"
+fi
 cp "$raiz/start.sh" "$raiz/LICENSE" "$origem/"
 cp "$raiz/installer/LEIA-ME-LINUX.txt" "$origem/LEIA-ME.txt"
 chmod +x "$origem/start.sh"
