@@ -19,7 +19,9 @@ rm -rf -- "$trabalho"
 mkdir -p "$origem/plugins" "$trabalho/java"
 
 cp "$raiz/builds/nukkit-gold-0.15.10.jar" "$origem/nukkit-gold.jar"
-cp "$raiz/builds/plugins/GoldCore-$versao.jar" "$raiz/builds/plugins/GoldAuth-$versao.jar" "$origem/plugins/"
+for plugin in GoldCore GoldAuth GoldPerms GoldEconomy; do
+    cp "$raiz/builds/plugins/$plugin-$versao.jar" "$origem/plugins/"
+done
 cp "$raiz/start.bat" "$raiz/LICENSE" "$raiz/installer/iniciar.cmd" "$raiz/installer/nukkit-gold.ico" "$origem/"
 # Mesmo arquivo que o servidor gera ao escolher "bra" na primeira execucao.
 unzip -p "$origem/nukkit-gold.jar" lang/bra/nukkit.yml > "$origem/nukkit.yml"
