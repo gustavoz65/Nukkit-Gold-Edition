@@ -248,10 +248,10 @@ public class Server {
 
         this.console.start();
 
-        this.logger.info("Loading " + TextFormat.GREEN + "nukkit.yml" + TextFormat.WHITE + "...");
+        this.logger.info("Carregando " + TextFormat.YELLOW + "nukkit.yml" + TextFormat.RESET + "...");
         this.config = new Config(this.dataPath + "nukkit.yml", Config.YAML);
 
-        this.logger.info("Loading " + TextFormat.GREEN + "server properties" + TextFormat.WHITE + "...");
+        this.logger.info("Carregando " + TextFormat.YELLOW + "server.properties" + TextFormat.RESET + "...");
         this.properties = new Config(this.dataPath + "server.properties", Config.PROPERTIES, new ConfigSection() {
             {
                 put("motd", "Nukkit-Gold para Minecraft: PE");

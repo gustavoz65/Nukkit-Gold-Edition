@@ -47,37 +47,37 @@ public class MainLogger extends ThreadedLogger {
 
     @Override
     public void emergency(String message) {
-        this.send(TextFormat.RED + "[EMERGENCY] " + message);
+        this.send(line(TextFormat.RED, "EMERG", message));
     }
 
     @Override
     public void alert(String message) {
-        this.send(TextFormat.RED + "[ALERT] " + message);
+        this.send(line(TextFormat.RED, "ALERTA", message));
     }
 
     @Override
     public void critical(String message) {
-        this.send(TextFormat.RED + "[CRITICAL] " + message);
+        this.send(line(TextFormat.RED, "CRITICO", message));
     }
 
     @Override
     public void error(String message) {
-        this.send(TextFormat.DARK_RED + "[ERROR] " + message);
+        this.send(line(TextFormat.RED, "ERRO", message));
     }
 
     @Override
     public void warning(String message) {
-        this.send(TextFormat.YELLOW + "[WARNING] " + message);
+        this.send(line(TextFormat.YELLOW, "AVISO", message));
     }
 
     @Override
     public void notice(String message) {
-        this.send(TextFormat.AQUA + "[NOTICE] " + message);
+        this.send(line(TextFormat.AQUA, "NOTA", message));
     }
 
     @Override
     public void info(String message) {
-        this.send(TextFormat.WHITE + "[INFO] " + message);
+        this.send(line(TextFormat.GREEN, "INFO", message));
     }
 
     @Override
@@ -85,7 +85,7 @@ public class MainLogger extends ThreadedLogger {
         if (!this.logDebug) {
             return;
         }
-        this.send(TextFormat.GRAY + "[DEBUG] " + message);
+        this.send(line(TextFormat.GRAY, "DEBUG", message));
     }
 
     public void setLogDebug(Boolean logDebug) {
@@ -143,6 +143,27 @@ public class MainLogger extends ThreadedLogger {
 
     protected void send(String message, int level) {
         logBuffer.add(message);
+    }
+
+    /**
+     * Linha do log: nivel colorido com largura fixa, separador e a tag [Plugin] em dourado.
+     * Ex.: "15:42:07 INFO    | [GoldHG] 1 arena(s) de HG pronta(s)."
+     */
+    private static String line(TextFormat color, String level, String message) {
+        String body = message;
+        if (body.startsWith("[")) {
+            int end = body.indexOf(']');
+            if (end > 1 && end < 32) { body = TextFormat.GOLD + body.substring(0, end + 1) + TextFormat.RESET + body.substring(end + 1); }
+        }
+        return color.toString() + TextFormat.BOLD + level + TextFormat.RESET + "        ".substring(Math.min(8, level.length())) + TextFormat.DARK_GRAY + "| " + TextFormat.RESET + body;
+    }
+
+    /** Marca de linha sem data nem nivel (letreiro de inicio). */
+    private static final String RAW = "\u0000raw:";
+
+    /** Escreve a linha como esta (com cores), sem data na frente. */
+    public void raw(String line) {
+        logBuffer.add(RAW + line);
     }
 
     private String colorize(String string) {
@@ -229,19 +250,26 @@ public class MainLogger extends ThreadedLogger {
         try {
             Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(logFile, true), StandardCharsets.UTF_8), 1024);
             Date now = new Date();
-            String dateFormat = new SimpleDateFormat("Y-M-d").format(now);
+            // Console: so a hora; arquivo: data e hora completas.
+            String dateFormat = new SimpleDateFormat("HH:mm:ss").format(now);
+            String fileDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss ").format(now);
             int count = 0;
             while (!logBuffer.isEmpty()) {
                 String message = logBuffer.poll();
                 if (message != null) {
-                    writer.write(dateFormat);
+                    boolean raw = message.startsWith(RAW);
+                    if (raw) {
+                        message = message.substring(RAW.length());
+                    } else {
+                        writer.write(fileDate);
+                    }
                     writer.write(TextFormat.clean(message));
                     writer.write("\r\n");
                     CommandReader console = CommandReader.getInstance();
                     if (console != null) {
                         console.stashLine();
                     }
-                    System.out.println(colorize(TextFormat.AQUA + dateFormat + TextFormat.RESET + " " + message + TextFormat.RESET));
+                    System.out.println(colorize(raw ? message + TextFormat.RESET : TextFormat.DARK_GRAY + dateFormat + TextFormat.RESET + " " + message + TextFormat.RESET));
                     if (console != null) {
                         console.unstashLine();
                     }

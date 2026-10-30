@@ -46,6 +46,7 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarMobs();
                 verificarComportamentoMobs();
                 verificarMovimento();
+                verificarPonte();
                 verificarAgendador().whenComplete((ignored, error) -> {
                     if (error == null) {
                         getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
@@ -343,6 +344,43 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
         } finally {
             if (jogador.chunk != null) { jogador.chunk.removeEntity(jogador); }
             for (java.util.Map.Entry<cn.nukkit.math.Vector3, cn.nukkit.block.Block> entrada : anteriores.entrySet()) { mundo.setBlock(entrada.getKey(), entrada.getValue(), true, false); }
+        }
+    }
+
+    /** Ponte agachado na beirada: o bloco novo fica embaixo/atras dos pes e nao pode ser recusado (sumia e o jogador caia). */
+    private void verificarPonte() throws Exception {
+        cn.nukkit.level.Level mundo = getServer().getDefaultLevel();
+        cn.nukkit.level.Position spawn = mundo.getSafeSpawn();
+        int x = spawn.getFloorX() + 40, z = spawn.getFloorZ(), y = 118;
+        cn.nukkit.math.Vector3 base = new cn.nukkit.math.Vector3(x, y - 1, z), nova = new cn.nukkit.math.Vector3(x + 1, y - 1, z);
+        cn.nukkit.block.Block antesBase = mundo.getBlock(base), antesNova = mundo.getBlock(nova);
+        JogadorSimulado jogador = new JogadorSimulado("GoldPonte");
+        try {
+            mundo.setBlock(base, cn.nukkit.block.Block.get(cn.nukkit.block.Block.STONE), true, false);
+            mundo.setBlock(nova, cn.nukkit.block.Block.get(cn.nukkit.block.Block.AIR), true, false);
+            jogador.level = mundo;
+            // Na beirada do bloco, olhando para tras (yaw 90 = -x), como quem anda de costas fazendo ponte.
+            posicionar(jogador, x + 0.95, y, z + 0.5);
+            jogador.yaw = 90; jogador.pitch = 80;
+            exigir(jogador.canInteract(new cn.nukkit.math.Vector3(x + 1.5, y - 0.5, z + 0.5), 7), "Bloco colado atras dos pes recusado.");
+            exigir(!jogador.canInteract(new cn.nukkit.math.Vector3(x + 4.5, y - 0.5, z + 0.5), 7), "Bloco longe atras do jogador aceito.");
+            // Caindo de leve (como no pulo da ponte): a previsao de movimento nao pode bloquear o bloco embaixo.
+            java.lang.reflect.Field proxima = cn.nukkit.Player.class.getDeclaredField("newPosition");
+            proxima.setAccessible(true);
+            proxima.set(jogador, new cn.nukkit.math.Vector3(x + 0.95, y - 0.3, z + 0.5));
+            cn.nukkit.item.Item bloco = cn.nukkit.item.Item.get(cn.nukkit.block.Block.STONE, 0, 2);
+            cn.nukkit.item.Item sobra = mundo.useItemOn(base, bloco, 5, 1f, 0.5f, 0.5f, jogador);
+            exigir(sobra != null && mundo.getBlockIdAt(x + 1, y - 1, z) == cn.nukkit.block.Block.STONE, "Bloco da ponte foi recusado.");
+            // Dentro do jogador continua proibido.
+            posicionar(jogador, x + 1.5, y - 1, z + 0.5);
+            proxima.set(jogador, new cn.nukkit.math.Vector3(x + 1.5, y - 1, z + 0.5));
+            mundo.setBlock(nova, cn.nukkit.block.Block.get(cn.nukkit.block.Block.AIR), true, false);
+            exigir(mundo.useItemOn(base, cn.nukkit.item.Item.get(cn.nukkit.block.Block.STONE, 0, 1), 5, 1f, 0.5f, 0.5f, jogador) == null, "Bloco colocado dentro do jogador.");
+            getLogger().info("Ponte: bloco atras dos pes aceito, caindo aceito, dentro do jogador recusado.");
+        } finally {
+            if (jogador.chunk != null) { jogador.chunk.removeEntity(jogador); }
+            mundo.setBlock(base, antesBase, true, false);
+            mundo.setBlock(nova, antesNova, true, false);
         }
     }
 
