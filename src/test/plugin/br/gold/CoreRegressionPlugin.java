@@ -45,6 +45,7 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarIsolamento();
                 verificarMobs();
                 verificarComportamentoMobs();
+                verificarMovimento();
                 verificarAgendador().whenComplete((ignored, error) -> {
                     if (error == null) {
                         getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
@@ -311,6 +312,43 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
         } catch (Exception erro) {
             throw new IllegalStateException(erro);
         }
+    }
+
+    /** Pular sobre a borda de um degrau era revertido (puxao); atravessar o bloco deve continuar bloqueado. */
+    private void verificarMovimento() {
+        cn.nukkit.level.Level mundo = getServer().getDefaultLevel();
+        cn.nukkit.level.Position spawn = mundo.getSafeSpawn();
+        int x = spawn.getFloorX() + 20, z = spawn.getFloorZ(), y = 118;
+        java.util.Map<cn.nukkit.math.Vector3, cn.nukkit.block.Block> anteriores = new java.util.LinkedHashMap<>();
+        java.util.List<cn.nukkit.math.Vector3> pedras = new java.util.ArrayList<>();
+        for (int dx = -2; dx <= 4; dx++) { for (int dz = -2; dz <= 2; dz++) { pedras.add(new cn.nukkit.math.Vector3(x + dx, y - 1, z + dz)); } }
+        for (int dz = -2; dz <= 2; dz++) { pedras.add(new cn.nukkit.math.Vector3(x + 2, y, z + dz)); }
+        JogadorSimulado jogador = new JogadorSimulado("GoldMovimento");
+        try {
+            for (cn.nukkit.math.Vector3 pos : pedras) { anteriores.put(pos, mundo.getBlock(pos)); mundo.setBlock(pos, cn.nukkit.block.Block.get(cn.nukkit.block.Block.STONE), true, false); }
+            for (int dy = 1; dy <= 3; dy++) { for (int dx = -2; dx <= 4; dx++) { cn.nukkit.math.Vector3 pos = new cn.nukkit.math.Vector3(x + dx, y + dy, z); anteriores.put(pos, mundo.getBlock(pos)); mundo.setBlock(pos, cn.nukkit.block.Block.get(cn.nukkit.block.Block.AIR), true, false); } }
+            jogador.level = mundo;
+            posicionar(jogador, x + 1.65, y, z + 0.5);
+            // Topo do degrau com arredondamento de ponto flutuante: a caixa encosta por 0,0001 no canto.
+            jogador.fastMove(0.45, 0.9999, 0);
+            exigir(Math.abs(jogador.y - (y + 0.9999)) < 1e-6 && Math.abs(jogador.x - (x + 2.1)) < 1e-6, "Subir rente a borda do degrau foi revertido.");
+            posicionar(jogador, x + 1.2, y, z + 0.5);
+            jogador.fastMove(1.0, 0, 0);
+            exigir(Math.abs(jogador.x - (x + 1.2)) < 1e-6, "Jogador atravessou um bloco solido.");
+            posicionar(jogador, x + 1.3, y, z + 0.5);
+            // Encostar na parede lateral (sem entrar) tambem nao pode ser recusado.
+            jogador.fastMove(0.4001, 0, 0);
+            exigir(Math.abs(jogador.x - (x + 1.7001)) < 1e-6, "Encostar na parede foi revertido.");
+            getLogger().info("Movimento: borda de degrau aceita, atravessar bloco recusado.");
+        } finally {
+            if (jogador.chunk != null) { jogador.chunk.removeEntity(jogador); }
+            for (java.util.Map.Entry<cn.nukkit.math.Vector3, cn.nukkit.block.Block> entrada : anteriores.entrySet()) { mundo.setBlock(entrada.getKey(), entrada.getValue(), true, false); }
+        }
+    }
+
+    private static void posicionar(JogadorSimulado jogador, double x, double y, double z) {
+        jogador.x = x; jogador.y = y; jogador.z = z;
+        jogador.boundingBox.setBounds(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3);
     }
 
     private static final class JogadorSimulado extends cn.nukkit.Player {

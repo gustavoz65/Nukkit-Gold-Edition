@@ -70,6 +70,7 @@ Referências dos identificadores: [zumbi no PocketMine histórico](https://githu
 | Criativo isolado | Itens com NBT não podiam ser reorganizados no criativo, e o `force` anterior executava a transação inteira em qualquer janela, o que permitia clonar itens de baús. Agora só o inventário do jogador e a armadura aceitam a troca livre, e apenas quando os dois itens existem no menu criativo |
 | Erros de rede registrados | Erros ao tratar um pacote válido eram descartados sem log. Pacote malformado continua gerando só uma linha de debug; erro interno gera log completo e encerra a sessão com mensagem própria |
 | `StackOverflowError` contido | Recursão infinita num plugin derrubava o servidor; agora é tratada como falha do plugin. `OutOfMemoryError` e as demais falhas da JVM continuam sendo propagadas |
+| Puxão na borda dos blocos | O movimento do jogador era recusado inteiro quando a caixa de colisão encostava por frações de bloco num canto (subir pulando num degrau ou andar rente à borda), e o servidor puxava o jogador de volta. A colisão do jogador agora é testada com a caixa reduzida em 0,05 na horizontal e 0,02 na vertical; entrar de fato num bloco continua bloqueado. Coberto pelo teste integrado de movimento |
 | Token de login nos dois alfabetos | O decode aceitava só base64url; tokens no alfabeto padrão eram recusados |
 
 ## Reproduzir os testes
