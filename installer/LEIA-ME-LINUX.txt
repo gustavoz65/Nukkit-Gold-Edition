@@ -1,0 +1,18 @@
+Nukkit Gold - servidor MCPE 0.15.10 (protocolo 84) para Linux x64
+
+O Java ja vem junto na pasta runtime/; nao e preciso instalar nada.
+
+Iniciar:
+    cd NukkitGold
+    ./start.sh
+
+Para desligar sem perder dados, digite stop e aperte Enter.
+Porta padrao: 19132/UDP. Libere no firewall para jogar pela rede (ex.: sudo ufw allow 19132/udp).
+
+Rodar em segundo plano (sobrevive ao fechar o SSH):
+    screen -S nukkit ./start.sh        (sair sem parar: Ctrl+A e depois D; voltar: screen -r nukkit)
+
+Atualizar: extraia o pacote novo por cima desta pasta. Mundos (worlds/), jogadores (players/),
+plugins/GoldCore (banco SQLite) e configuracoes sao preservados.
+
+Plugins incluidos: GoldCore, GoldAuth, GoldPerms e GoldEconomy.

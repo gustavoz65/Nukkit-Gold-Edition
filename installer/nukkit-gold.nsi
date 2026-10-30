@@ -150,10 +150,12 @@ Section "Java 25 embutido" SecJava
   File /r "${ORIGEM}\runtime\*.*"
 SectionEnd
 
-Section "Plugins GoldCore e GoldAuth" SecPlugins
+Section "Plugins GoldSuite" SecPlugins
   SetOutPath "$INSTDIR\plugins"
   File "${ORIGEM}\plugins\GoldCore-${VERSAO}.jar"
   File "${ORIGEM}\plugins\GoldAuth-${VERSAO}.jar"
+  File "${ORIGEM}\plugins\GoldPerms-${VERSAO}.jar"
+  File "${ORIGEM}\plugins\GoldEconomy-${VERSAO}.jar"
 SectionEnd
 
 Section "Atalho na área de trabalho" SecAtalho
@@ -169,7 +171,7 @@ SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecServidor} "O core Nukkit Gold e o iniciador."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecJava} "Java 25 só para o servidor. Desmarque apenas se já tiver Java 8 ou superior no PATH."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "Armazenamento SQLite, assinatura de itens, registro e login."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GoldCore (SQLite e assinatura de itens), GoldAuth (registro e login), GoldPerms (grupos e permissões) e GoldEconomy (money, cash e /pagar)."
   !insertmacro MUI_DESCRIPTION_TEXT ${SecAtalho} "Cria o atalho Nukkit Gold na área de trabalho."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
@@ -195,6 +197,8 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\runtime"
   Delete "$INSTDIR\plugins\GoldCore-${VERSAO}.jar"
   Delete "$INSTDIR\plugins\GoldAuth-${VERSAO}.jar"
+  Delete "$INSTDIR\plugins\GoldPerms-${VERSAO}.jar"
+  Delete "$INSTDIR\plugins\GoldEconomy-${VERSAO}.jar"
 
   ; So apaga dados que o proprio servidor cria, por nome. Nunca a pasta inteira,
   ; caso o usuario tenha instalado numa pasta com outros arquivos.
