@@ -153,6 +153,8 @@ SectionEnd
 Section "Plugins incluídos no pacote" SecPlugins
   ; Vazio quando o instalador e gerado sem PLUGINS_DIR.
   SetOutPath "$INSTDIR\plugins"
+  ; Versoes antigas do pacote ficariam duplicadas e o servidor carregaria a primeira que achar.
+  Delete "$INSTDIR\plugins\Gold*-*.jar"
   File /nonfatal "${ORIGEM}\plugins\*.jar"
 SectionEnd
 

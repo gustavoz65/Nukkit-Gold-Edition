@@ -5,8 +5,8 @@ Compilado em 30/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda re
 - nukkit-gold-0.15.10.jar: core 0.3.0 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
 
 Novidades da 0.3.0 (30/10/2026):
-- Core sem mudancas de codigo alem da versao; a release traz os 23 plugins do Pack-Gold-Plugins 0.3.0.
-- Plugins: ranked 1v1 com ELO e perfil na hotbar (GoldPvP), NPCs com a skin do top 3 (GoldNPC), poder de faccoes com pesos, invasao de borda e mini mapa (GoldFactions).
+- Core sem mudancas de codigo alem da versao; a release traz os 24 plugins do Pack-Gold-Plugins 0.3.0 (novo: GoldCosmetics).
+- Plugins: ranked com elos estilo Valorant, anti-fraude e perfil na hotbar (GoldPvP), cosmeticos (GoldCosmetics), HG com inicio estilo PC, NPCs com a skin do top 3 (GoldNPC), poder de faccoes com pesos, invasao de borda e mini mapa (GoldFactions).
 
 Novidades da 0.2.0 (30/10/2026):
 - Fim do puxao do jogador na borda dos blocos (colisao com margem igual a do cliente).
