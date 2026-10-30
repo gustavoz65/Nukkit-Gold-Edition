@@ -51,7 +51,7 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarIsolamento();
                 verificarMobs();
                 verificarComportamentoMobs();
-                verificarGoldCore().thenCompose(ignored -> verificarAgendador()).thenCompose(ignored -> verificarGoldAuth()).thenRun(() -> verificarDrenagem()).whenComplete((ignored, error) -> {
+                verificarGoldCore().thenCompose(ignored -> SuiteRegression.run(getServer())).thenCompose(ignored -> verificarAgendador()).thenCompose(ignored -> verificarGoldAuth()).thenRun(() -> verificarDrenagem()).whenComplete((ignored, error) -> {
                     if (error == null) {
                         getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
                     } else {

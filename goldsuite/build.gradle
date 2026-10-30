@@ -56,3 +56,33 @@ project(':gold-auth') {
     }
     check.dependsOn regression
 }
+
+project(':gold-perms') {
+    dependencies {
+        compileOnly project(':gold-api')
+        testImplementation project(':gold-api')
+    }
+    tasks.named('test') { enabled = false }
+    tasks.register('regression', JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = 'br.goldsuite.perms.PermissionTest'
+        jvmArgs '-ea'
+    }
+    check.dependsOn regression
+}
+
+project(':gold-economy') {
+    dependencies {
+        compileOnly project(':gold-api')
+        testImplementation project(':gold-api')
+    }
+    tasks.named('test') { enabled = false }
+    tasks.register('regression', JavaExec) {
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = 'br.goldsuite.economy.EconomyTest'
+        jvmArgs '-ea'
+    }
+    check.dependsOn regression
+}
