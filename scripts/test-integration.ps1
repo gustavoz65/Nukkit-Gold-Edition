@@ -6,7 +6,7 @@ param(
     [switch]$Direto = $true,
     [string]$PluginJar = (Join-Path $Raiz 'build/gold-core-regression.jar'),
     [switch]$FalhasEsperadas = $true,
-    [string[]]$OutrosPlugins = @((Join-Path $Raiz 'goldsuite/gold-core/build/libs/gold-core-0.1.0.jar'), (Join-Path $Raiz 'goldsuite/gold-auth/build/libs/gold-auth-0.1.0.jar'))
+    [string[]]$OutrosPlugins = @()
 )
 $ErrorActionPreference = 'Stop'
 $pastaBuild = [IO.Path]::GetFullPath((Join-Path $Raiz 'build'))

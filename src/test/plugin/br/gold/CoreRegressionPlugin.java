@@ -30,12 +30,6 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
     @Override
     public void onEnable() {
         this.mainThreadId = Thread.currentThread().getId();
-        Plugin auth = getServer().getPluginManager().getPlugin("GoldAuth");
-        if (auth != null && auth.isEnabled()) {
-            br.goldsuite.api.AuthService api = getServer().getServiceManager().load(br.goldsuite.api.AuthService.class);
-            getServer().getPluginManager().disablePlugin(auth);
-            exigir(api.register(null, "EstadoInativo123".toCharArray()).isCompletedExceptionally(), "API de autenticacao desativada aceitou uma operacao.");
-        }
         getServer().getCommandMap().register("goldteste", new Command("verificar_thread_gold") {
             @Override public boolean execute(CommandSender sender, String label, String[] args) {
                 exigir(Thread.currentThread().getId() == mainThreadId, "Console executou comando fora da thread principal.");
@@ -51,7 +45,7 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarIsolamento();
                 verificarMobs();
                 verificarComportamentoMobs();
-                verificarGoldCore().thenCompose(ignored -> SuiteRegression.run(getServer())).thenCompose(ignored -> verificarAgendador()).thenCompose(ignored -> verificarGoldAuth()).thenRun(() -> verificarDrenagem()).whenComplete((ignored, error) -> {
+                verificarAgendador().whenComplete((ignored, error) -> {
                     if (error == null) {
                         getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
                     } else {
@@ -345,48 +339,6 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
         }
     }
 
-    private java.util.concurrent.CompletableFuture<Void> verificarGoldCore() {
-        br.goldsuite.api.CoreService core = getServer().getServiceManager().load(br.goldsuite.api.CoreService.class);
-        if (core == null) { return java.util.concurrent.CompletableFuture.completedFuture(null); }
-        return core.whenReady()
-                .thenCompose(ignored -> core.getStore().put("integracao", "persistencia", "Proteção persistente"))
-                .thenCompose(ignored -> core.getStore().get("integracao", "persistencia"))
-                .thenAccept(valor -> {
-                    exigir(Thread.currentThread().getId() == this.mainThreadId, "Conclusao do armazenamento ocorreu fora da thread principal.");
-                    exigir(valor.orElse("").equals("Proteção persistente"), "Armazenamento assincrono nao preservou o valor.");
-                    Item assinado = core.getItemSigner().sign(Item.get(Item.DIAMOND), "teste:chave");
-                    exigir(core.getItemSigner().verify(assinado, "teste:chave"), "Assinatura do servico real falhou.");
-                    assinado.setCount(64);
-                    exigir(core.getItemSigner().verify(assinado, "teste:chave"), "Item assinado deixou de valer ao empilhar.");
-                    assinado.setNamedTag(((cn.nukkit.nbt.tag.CompoundTag) assinado.getNamedTag().copy()).putInt("adulterado", 1));
-                    exigir(!core.getItemSigner().verify(assinado, "teste:chave"), "Servico real aceitou item adulterado.");
-                    getLogger().info("GoldCore: SQLite assincrono, retorno na thread principal e HMAC verificados.");
-                });
-    }
-
-    private void verificarDrenagem() {
-        br.goldsuite.api.CoreService core = getServer().getServiceManager().load(br.goldsuite.api.CoreService.class);
-        if (core == null) { return; }
-        // A escrita foi enfileirada neste tick: o desligamento precisa drena-la sem outro heartbeat.
-        core.getStore().put("integracao", "desligamento", "gravado");
-        getServer().getPluginManager().disablePlugin(getServer().getPluginManager().getPlugin("GoldCore"));
-        exigir(getServer().getServiceManager().load(br.goldsuite.api.CoreService.class) == null, "GoldCore desativado permaneceu registrado.");
-        exigir(core.getStore().get("integracao", "persistencia").isCompletedExceptionally(), "Armazenamento desativado aceitou nova operacao.");
-        getLogger().info("GoldCore: drenagem ao desativar verificada.");
-    }
-
-    private java.util.concurrent.CompletableFuture<Void> aguardar(java.util.function.BooleanSupplier condicao) {
-        java.util.concurrent.CompletableFuture<Void> resultado = new java.util.concurrent.CompletableFuture<>();
-        getServer().getScheduler().scheduleRepeatingTask(new cn.nukkit.scheduler.PluginTask<CoreRegressionPlugin>(this) {
-            private int ticks;
-            @Override public void onRun(int tick) {
-                if (condicao.getAsBoolean()) { resultado.complete(null); cancel(); }
-                else if (++this.ticks > 200) { resultado.completeExceptionally(new AssertionError("Condicao assincrona nao foi atingida.")); cancel(); }
-            }
-        }, 1);
-        return resultado;
-    }
-
     private java.util.concurrent.CompletableFuture<Void> verificarAgendador() {
         java.util.concurrent.CompletableFuture<Void> concluido = new java.util.concurrent.CompletableFuture<>();
         AtomicInteger chamadas = new AtomicInteger();
@@ -401,87 +353,6 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
             handler.cancel();
             exigir(chamadas.get() == 2 && cancelamentos.get() == 1, "Cancelamento nao foi idempotente.");
             getLogger().info("Agendador: handler, cancelamento pela tarefa e onCancel unico verificados.");
-        });
-    }
-
-    private java.util.concurrent.CompletableFuture<Void> verificarGoldAuth() {
-        Plugin plugin = getServer().getPluginManager().getPlugin("GoldAuth");
-        if (plugin == null) { return java.util.concurrent.CompletableFuture.completedFuture(null); }
-        getServer().getPluginManager().enablePlugin(plugin);
-        br.goldsuite.api.AuthService auth = getServer().getServiceManager().load(br.goldsuite.api.AuthService.class);
-        br.goldsuite.api.CoreService core = getServer().getServiceManager().load(br.goldsuite.api.CoreService.class);
-        exigir(auth != null && core != null, "Servicos de autenticacao ausentes.");
-        JogadorSimulado primeiro = new JogadorSimulado("GoldTesteAuth");
-        JogadorSimulado segundo = new JogadorSimulado("goldtesteauth");
-        JogadorSimulado terceiro = new JogadorSimulado("GoldTesteAuth");
-        JogadorSimulado quarto = new JogadorSimulado("GoldTesteAuth");
-        JogadorSimulado quinto = new JogadorSimulado("GoldTesteAuth");
-        AtomicInteger eventosAuth = new AtomicInteger();
-        getServer().getPluginManager().registerEvent(br.goldsuite.api.event.PlayerAuthEvent.class, new Listener() { }, EventPriority.MONITOR,
-                (listener, event) -> { exigir(Thread.currentThread().getId() == mainThreadId, "Evento de autenticacao fora da thread principal."); eventosAuth.incrementAndGet(); }, this);
-        return core.getStore().delete("goldauth", "goldtesteauth").thenCompose(ignored -> {
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerJoinEvent(primeiro, ""));
-            cn.nukkit.event.player.PlayerMoveEvent movimento = new cn.nukkit.event.player.PlayerMoveEvent(primeiro,
-                    new cn.nukkit.level.Location(0, 120, 0), new cn.nukkit.level.Location(1, 120, 0));
-            getServer().getPluginManager().callEvent(movimento);
-            exigir(movimento.isCancelled(), "Jogador sem login conseguiu se mover.");
-            cn.nukkit.event.player.PlayerCommandPreprocessEvent comando = new cn.nukkit.event.player.PlayerCommandPreprocessEvent(primeiro, "/OP invasor");
-            getServer().getPluginManager().callEvent(comando);
-            exigir(comando.isCancelled(), "Comando administrativo passou antes do login.");
-            cn.nukkit.event.server.DataPacketReceiveEvent pacote = new cn.nukkit.event.server.DataPacketReceiveEvent(primeiro, new cn.nukkit.network.protocol.ItemFrameDropItemPacket());
-            getServer().getPluginManager().callEvent(pacote);
-            exigir(pacote.isCancelled(), "Pacote mutavel passou antes do login.");
-            return auth.register(primeiro, "SenhaTesteSegura123".toCharArray());
-        }).thenCompose(registrado -> {
-            exigir(registrado && auth.isAuthenticated(primeiro), "Registro nao autenticou o jogador.");
-            cn.nukkit.event.player.PlayerPreLoginEvent duplicado = new cn.nukkit.event.player.PlayerPreLoginEvent(segundo, "");
-            getServer().getPluginManager().callEvent(duplicado);
-            exigir(duplicado.isCancelled(), "Uma conexao conseguiu substituir a conta autenticada.");
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerQuitEvent(primeiro, "", false));
-            exigir(!auth.isAuthenticated(primeiro), "Sessao antiga permaneceu autenticada.");
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerJoinEvent(segundo, ""));
-            return auth.login(segundo, "SenhaIncorreta123".toCharArray());
-        }).thenCompose(aceito -> {
-            exigir(!aceito && !auth.isAuthenticated(segundo), "Senha incorreta autenticou a conta.");
-            return auth.login(segundo, "SenhaTesteSegura123".toCharArray());
-        }).thenCompose(aceito -> {
-            exigir(aceito && auth.isAuthenticated(segundo), "Login correto recusado.");
-            return auth.changePassword(segundo, "SenhaTesteSegura123".toCharArray(), "NovaSenhaSegura456".toCharArray());
-        }).thenCompose(alterado -> {
-            exigir(alterado, "Troca de senha falhou.");
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerQuitEvent(segundo, "", false));
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerJoinEvent(terceiro, ""));
-            return auth.login(terceiro, "SenhaTesteSegura123".toCharArray());
-        }).thenCompose(aceito -> {
-            exigir(!aceito, "Senha antiga continuou valida apos a troca.");
-            return auth.login(terceiro, "NovaSenhaSegura456".toCharArray());
-        }).thenCompose(aceito -> {
-            exigir(aceito, "Senha nova foi recusada.");
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerQuitEvent(terceiro, "", false));
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerJoinEvent(quarto, ""));
-            return auth.register(quarto, "NaoSobrescrever123".toCharArray());
-        }).thenCompose(aceito -> {
-            exigir(!aceito && !auth.isAuthenticated(quarto), "Registro existente foi sobrescrito.");
-            cn.nukkit.event.player.PlayerChatEvent chat = new cn.nukkit.event.player.PlayerChatEvent(quarto, "NovaSenhaSegura456");
-            getServer().getPluginManager().callEvent(chat);
-            exigir(chat.isCancelled() && chat.getMessage().isEmpty(), "Senha do chat nao foi retirada da mensagem.");
-            return aguardar(() -> auth.isAuthenticated(quarto));
-        }).thenCompose(ignored -> {
-            exigir(eventosAuth.get() == 4, "Evento de autenticacao ausente ou duplicado.");
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerQuitEvent(quarto, "", false));
-            getServer().getPluginManager().callEvent(new cn.nukkit.event.player.PlayerJoinEvent(quinto, ""));
-            java.util.concurrent.CompletableFuture<Boolean> tentativas = java.util.concurrent.CompletableFuture.completedFuture(false);
-            for (int tentativa = 0; tentativa < 5; tentativa++) {
-                tentativas = tentativas.thenCompose(ignorado -> auth.login(quinto, "SenhaSempreErrada123".toCharArray()));
-            }
-            return tentativas;
-        }).thenCompose(aceito -> {
-            exigir(!aceito && !quinto.isConnected() && !auth.isAuthenticated(quinto), "Cinco senhas incorretas nao encerraram a sessao.");
-            exigir(getServer().dispatchCommand(getServer().getConsoleSender(), "authreset GoldTesteAuth"), "Reset administrativo nao foi executado.");
-            return core.getStore().get("goldauth", "goldtesteauth");
-        }).thenAccept(registro -> {
-            exigir(!registro.isPresent() && !auth.isAuthenticated(quarto), "Reset manteve registro ou sessao autenticada.");
-            getLogger().info("GoldAuth: registro, login incorreto/correto, reconexao, troca, chat privado, bloqueios e reset verificados.");
         });
     }
 

@@ -1,8 +1,6 @@
 # saídas de build
 /build/
 /target/
-/goldsuite/.gradle/
-/goldsuite/**/build/
 *.class
 # pasta de teste do servidor
 /servidor/
