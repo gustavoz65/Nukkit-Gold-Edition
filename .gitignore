@@ -19,3 +19,6 @@
 .idea/
 *.iml
 .vscode/
+# plugins ficam no repositorio Pack-Gold-Plugins
+/goldsuite/
+.gradle/
