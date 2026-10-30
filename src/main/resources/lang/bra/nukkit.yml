@@ -26,6 +26,24 @@ network:
  #Usar AsyncTasks para a compressão. Adiciona metade de um/um tick de delay, menos uso na CPU na thread principal.
  async-compression: false
 
+ #Anti-DDoS do Nukkit Gold (camada RakNet). Floods que lotam o link precisam de protecao na hospedagem/firewall.
+ anti-ddos:
+  enabled: true
+  #Pacotes por segundo de um mesmo IP antes de bloquear
+  packets-per-second: 1500
+  #Pings da lista de servidores por segundo por IP (o excesso e ignorado)
+  pings-per-second: 5
+  #Conexoes abertas ao mesmo tempo por IP
+  sessions-per-ip: 5
+  #Novas conexoes por minuto por IP
+  new-sessions-per-minute: 20
+  #Acima disto (conexoes novas por segundo no servidor todo) entra em modo ataque por 30 s
+  attack-new-sessions-per-second: 25
+  #No modo ataque, quantas conexoes novas entram por segundo
+  attack-allow-per-second: 3
+  #Tempo de bloqueio do IP abusivo
+  block-seconds: 300
+
 debug:
  #Se maior de 1, as mensagens para debug irão ser mostradas no console
  level: 1

@@ -26,6 +26,17 @@ network:
  #Use AsyncTasks for compression. Adds half/one tick delay, less CPU load on main thread
  async-compression: false
 
+ #Nukkit Gold anti-DDoS (RakNet layer). Floods that saturate the link need host/firewall protection.
+ anti-ddos:
+  enabled: true
+  packets-per-second: 1500
+  pings-per-second: 5
+  sessions-per-ip: 5
+  new-sessions-per-minute: 20
+  attack-new-sessions-per-second: 25
+  attack-allow-per-second: 3
+  block-seconds: 300
+
 debug:
  #If > 1, it will show debug messages in the console
  level: 1
