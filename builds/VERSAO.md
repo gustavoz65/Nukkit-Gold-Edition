@@ -7,6 +7,7 @@ Compilado em 30/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda re
 Novidades da 0.3.2 (30/10/2026):
 - Ponte (SkyWars, bridge): blocos colocados embaixo/atras dos pes na beirada nao somem mais. O servidor recusava porque o bloco ficava "atras" da direcao do olhar, e a previsao de queda batia no bloco novo; o jogador caia e morria. Teste de regressao novo (verificarPonte).
 - Console: letreiro do Nukkit Gold com o bloco de ouro, log com hora, nivel em portugues colorido e tag [Plugin] em dourado. O server.log ganhou data e hora completas.
+- Clima: level-settings.weather: false no nukkit.yml desliga a chuva e a trovoada em todos os mundos.
 - Plugins continuam na 0.3.1.
 
 Novidades da 0.3.1 (30/10/2026):

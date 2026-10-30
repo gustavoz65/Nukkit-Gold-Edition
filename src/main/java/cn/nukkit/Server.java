@@ -319,6 +319,7 @@ public class Server {
         this.autoTickRateLimit = (int) this.getConfig("level-settings.auto-tick-rate-limit", 20);
         this.alwaysTickPlayers = (boolean) this.getConfig("level-settings.always-tick-players", false);
         this.baseTickRate = (int) this.getConfig("level-settings.base-tick-rate", 1);
+        this.weatherEnabled = !"false".equalsIgnoreCase(String.valueOf(this.getConfig("level-settings.weather", true)));
 
         this.scheduler = new ServerScheduler();
 
@@ -1323,6 +1324,17 @@ public class Server {
 
     public int getTick() {
         return tickCounter;
+    }
+
+    private boolean weatherEnabled = true;
+
+    /** false (level-settings.weather no nukkit.yml) = sem chuva nem trovoada em nenhum mundo. */
+    public boolean isWeatherEnabled() {
+        return this.weatherEnabled;
+    }
+
+    public void setWeatherEnabled(boolean enabled) {
+        this.weatherEnabled = enabled;
     }
 
     public float getTicksPerSecond() {
