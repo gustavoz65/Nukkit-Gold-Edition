@@ -1856,6 +1856,7 @@ public class Level implements ChunkManager, Metadatable {
             hand.position(block);
         }
 
+        double towerTop = Double.NaN;
         if (hand.isSolid() && hand.getBoundingBox() != null) {
             Entity[] entities = this.getCollidingEntities(hand.getBoundingBox());
             int realCount = 0;
@@ -1870,7 +1871,14 @@ public class Level implements ChunkManager, Metadatable {
             // na ponte (ou caindo/pulando um pouco) os pes encostam no bloco novo por milimetros e ele era recusado.
             if (player != null) {
                 AxisAlignedBB self = player.getBoundingBox().shrink(0.05, 0.1, 0.05);
-                if (hand.getBoundingBox().intersectsWith(self)) {
+                AxisAlignedBB placed = hand.getBoundingBox();
+                // Torre: pulando e colocando o bloco embaixo dos pes. O servidor ainda ve o jogador entrando no bloco;
+                // em vez de recusar (bloco sumia) ou empurrar para o lado, aceita e o jogador fica em cima dele.
+                boolean tower = player.x >= placed.minX && player.x <= placed.maxX && player.z >= placed.minZ && player.z <= placed.maxZ
+                        && player.y >= placed.minY + 0.2 && player.y < placed.maxY && placed.maxY - player.y <= 0.8;
+                if (tower) {
+                    towerTop = placed.maxY;
+                } else if (placed.intersectsWith(self)) {
                     ++realCount;
                 } else {
                     Vector3 diff = player.getNextPosition().subtract(player.getPosition());
@@ -1925,6 +1933,10 @@ public class Level implements ChunkManager, Metadatable {
 
         if (!hand.place(item, block, target, face, fx, fy, fz, player)) {
             return null;
+        }
+
+        if (player != null && !Double.isNaN(towerTop) && player.y < towerTop) {
+            player.setPosition(new Vector3(player.x, towerTop, player.z));
         }
 
         if (player != null && !player.isCreative()) {

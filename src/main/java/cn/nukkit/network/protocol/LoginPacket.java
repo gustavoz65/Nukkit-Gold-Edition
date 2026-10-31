@@ -29,6 +29,8 @@ public class LoginPacket extends DataPacket {
     public String serverAddress;
 
     public Skin skin;
+    /** Campos simples do token do cliente (sem a skin), para plugins: DeviceOS, DeviceModel, GameVersion... quando o cliente manda. */
+    public final java.util.Map<String, String> clientData = new java.util.LinkedHashMap<>();
 
     @Override
     public byte pid() {
@@ -92,6 +94,13 @@ public class LoginPacket extends DataPacket {
         if (skinToken.has("ServerAddress")) this.serverAddress = skinToken.get("ServerAddress").getAsString();
         if (skinToken.has("SkinId")) skinId = skinToken.get("SkinId").getAsString();
         if (skinToken.has("SkinData")) this.skin = new Skin(skinToken.get("SkinData").getAsString(), skinId);
+        for (java.util.Map.Entry<String, com.google.gson.JsonElement> e : skinToken.entrySet()) {
+            if (this.clientData.size() >= 32 || e.getKey().equals("SkinData") || e.getKey().length() > 64) { continue; }
+            if (e.getValue().isJsonPrimitive()) {
+                String v = e.getValue().getAsString();
+                this.clientData.put(e.getKey(), v.length() > 256 ? v.substring(0, 256) : v);
+            }
+        }
     }
 
     private JsonObject decodeToken(String token) {

@@ -213,6 +213,24 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
      * Please use getUniqueId() instead (IP + clientId + name combo, in the future it'll change to real UUID for online auth)
      */
     @Deprecated
+    protected java.util.Map<String, String> loginData = java.util.Collections.emptyMap();
+    protected int protocol = ProtocolInfo.CURRENT_PROTOCOL;
+
+    /** Campos do token do cliente no login (DeviceOS, DeviceModel, GameVersion... quando existem). */
+    public java.util.Map<String, String> getLoginData() {
+        return this.loginData;
+    }
+
+    /** Protocolo do cliente (84 = 0.15.10). Base para a traducao entre versoes. */
+    public int getProtocol() {
+        return this.protocol;
+    }
+
+    /** Identificador estavel do aparelho: identidade + id aleatorio da instalacao do jogo. Nao e segredo. */
+    public String getDeviceFingerprint() {
+        return String.valueOf(this.uuid) + ":" + this.randomClientId;
+    }
+
     public Long getClientId() {
         return randomClientId;
     }
@@ -1778,6 +1796,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                     String message;
                     if (loginPacket.getProtocol() != ProtocolInfo.CURRENT_PROTOCOL) {
+                        this.server.getLogger().info("Cliente com protocolo " + loginPacket.getProtocol() + " recusado (" + loginPacket.username + "); suportado: " + ProtocolInfo.CURRENT_PROTOCOL + " (MCPE 0.15.10).");
                         if (loginPacket.getProtocol() < ProtocolInfo.CURRENT_PROTOCOL) {
                             message = "disconnectionScreen.outdatedClient";
 
@@ -1809,6 +1828,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
 
                     this.randomClientId = loginPacket.clientId;
+                    this.loginData = java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(loginPacket.clientData));
+                    this.protocol = loginPacket.getProtocol();
 
                     this.uuid = loginPacket.clientUUID;
                     this.rawUUID = Binary.writeUUID(this.uuid);

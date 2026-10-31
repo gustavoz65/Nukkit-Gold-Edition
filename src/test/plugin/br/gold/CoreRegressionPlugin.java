@@ -47,6 +47,7 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
                 verificarComportamentoMobs();
                 verificarMovimento();
                 verificarPonte();
+                verificarTorre();
                 verificarAgendador().whenComplete((ignored, error) -> {
                     if (error == null) {
                         getLogger().info("VERIFICACOES_INTEGRADAS_APROVADAS");
@@ -344,6 +345,40 @@ public final class CoreRegressionPlugin extends PluginBase implements Listener {
         } finally {
             if (jogador.chunk != null) { jogador.chunk.removeEntity(jogador); }
             for (java.util.Map.Entry<cn.nukkit.math.Vector3, cn.nukkit.block.Block> entrada : anteriores.entrySet()) { mundo.setBlock(entrada.getKey(), entrada.getValue(), true, false); }
+        }
+    }
+
+    /** Torre: pulando e colocando o bloco embaixo dos pes; o bloco fica e o jogador sobe para cima dele. */
+    private void verificarTorre() throws Exception {
+        cn.nukkit.level.Level mundo = getServer().getDefaultLevel();
+        cn.nukkit.level.Position spawn = mundo.getSafeSpawn();
+        int x = spawn.getFloorX() + 60, z = spawn.getFloorZ(), y = 118;
+        cn.nukkit.math.Vector3 chao = new cn.nukkit.math.Vector3(x, y - 1, z), pes = new cn.nukkit.math.Vector3(x, y, z);
+        cn.nukkit.block.Block antesChao = mundo.getBlock(chao), antesPes = mundo.getBlock(pes);
+        JogadorSimulado jogador = new JogadorSimulado("GoldTorre");
+        try {
+            mundo.setBlock(chao, cn.nukkit.block.Block.get(cn.nukkit.block.Block.STONE), true, false);
+            mundo.setBlock(pes, cn.nukkit.block.Block.get(cn.nukkit.block.Block.AIR), true, false);
+            jogador.level = mundo;
+            // No meio do pulo: 0,45 acima do chao, ainda dentro da celula onde o bloco vai.
+            posicionar(jogador, x + 0.5, y + 0.45, z + 0.5);
+            java.lang.reflect.Field proxima = cn.nukkit.Player.class.getDeclaredField("newPosition");
+            proxima.setAccessible(true);
+            proxima.set(jogador, new cn.nukkit.math.Vector3(x + 0.5, y + 0.6, z + 0.5));
+            jogador.pitch = 90;
+            cn.nukkit.item.Item sobra = mundo.useItemOn(chao, cn.nukkit.item.Item.get(cn.nukkit.block.Block.STONE, 0, 2), 1, 0.5f, 1f, 0.5f, jogador);
+            exigir(sobra != null && mundo.getBlockIdAt(x, y, z) == cn.nukkit.block.Block.STONE, "Bloco da torre foi recusado.");
+            exigir(Math.abs(jogador.y - (y + 1)) < 1e-6 && Math.abs(jogador.x - (x + 0.5)) < 1e-6, "Jogador nao ficou em cima do bloco da torre.");
+            // Parado no chao (sem pular), colocar dentro de si continua proibido.
+            mundo.setBlock(pes, cn.nukkit.block.Block.get(cn.nukkit.block.Block.AIR), true, false);
+            posicionar(jogador, x + 0.5, y, z + 0.5);
+            proxima.set(jogador, new cn.nukkit.math.Vector3(x + 0.5, y, z + 0.5));
+            exigir(mundo.useItemOn(chao, cn.nukkit.item.Item.get(cn.nukkit.block.Block.STONE, 0, 1), 1, 0.5f, 1f, 0.5f, jogador) == null, "Bloco colocado dentro de quem esta parado.");
+            getLogger().info("Torre: bloco no pulo aceito e jogador em cima, parado recusado.");
+        } finally {
+            if (jogador.chunk != null) { jogador.chunk.removeEntity(jogador); }
+            mundo.setBlock(chao, antesChao, true, false);
+            mundo.setBlock(pes, antesPes, true, false);
         }
     }
 
