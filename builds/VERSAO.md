@@ -1,8 +1,13 @@
-# Nukkit Gold 0.3.2
+# Nukkit Gold 0.4.0
 
 Compilado em 30/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
 
-- nukkit-gold-0.15.10.jar: core 0.3.2 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+- nukkit-gold-0.15.10.jar: core 0.4.0 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+
+Novidades da 0.4.0 (31/10/2026):
+- Torre: pular e colocar o bloco embaixo dos pes nao some mais o bloco nem empurra o jogador para o lado (teste verificarTorre).
+- Login: dados do aparelho (getLoginData, getDeviceFingerprint) e protocolo do cliente (getProtocol), base do 2FA, da deteccao de plataforma e da multiversao (docs/multiversao.md).
+- Plugins 0.4.0 (26): GoldDevice (plataforma, /fps, limite de CPS), GoldKeys (keys com pedidos, pagamento, validade e resgate unico), 2FA no GoldAuth, Nuvem Voadora voando.
 
 Novidades da 0.3.2 (30/10/2026):
 - Ponte (SkyWars, bridge): blocos colocados embaixo/atras dos pes na beirada nao somem mais. O servidor recusava porque o bloco ficava "atras" da direcao do olhar, e a previsao de queda batia no bloco novo; o jogador caia e morria. Teste de regressao novo (verificarPonte).
@@ -27,8 +32,8 @@ Novidades da 0.2.0 (30/10/2026):
 SHA-256 em SHA256SUMS.
 
 Pacotes gerados a partir desta pasta (com Java 25 embutido):
-- Windows: bash scripts/build-installer.sh -> build/NukkitGold-Setup-0.3.2.exe
-- Linux x64: bash scripts/build-linux.sh -> build/NukkitGold-0.3.2-linux-x64.tar.gz (extrair e rodar ./start.sh)
+- Windows: bash scripts/build-installer.sh -> build/NukkitGold-Setup-0.4.0.exe
+- Linux x64: bash scripts/build-linux.sh -> build/NukkitGold-0.4.0-linux-x64.tar.gz (extrair e rodar ./start.sh)
 
 Para incluir plugins no pacote, informe a pasta com os .jar: PLUGINS_DIR=/caminho bash scripts/build-installer.sh
 
