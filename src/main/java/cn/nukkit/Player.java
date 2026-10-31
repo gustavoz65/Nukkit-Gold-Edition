@@ -177,6 +177,26 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     protected Position spawnPosition = null;
 
     protected int inAirTicks = 0;
+    /** Tick ate quando o tempo no ar nao conta (depois de entrar ou teleportar). */
+    protected int airGraceUntil = 0;
+
+    /** O chunk embaixo do jogador ja foi enviado ao cliente (antes disso ele fica parado no ar). */
+    protected boolean chunkUnderReady() {
+        Boolean sent = this.usedChunks.get(Level.chunkHash(this.getFloorX() >> 4, this.getFloorZ() >> 4));
+        return sent != null && sent;
+    }
+
+    /** Leva o jogador ao bloco solido mais alto embaixo dele; sobre o vazio so zera o contador (o anti-void cuida). */
+    protected void pullToGround() {
+        this.inAirTicks = 0;
+        this.startAirTicks = 5;
+        for (int y = this.getFloorY(); y > 0 && y > this.getFloorY() - 64; y--) {
+            if (this.level.getBlock(new Vector3(this.getFloorX(), y - 1, this.getFloorZ())).isSolid()) {
+                this.teleport(new Vector3(this.x, y, this.z), null);
+                return;
+            }
+        }
+    }
     protected int startAirTicks = 5;
 
     protected AdventureSettings adventureSettings;
@@ -694,6 +714,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     protected void doFirstSpawn() {
         this.spawned = true;
+        this.airGraceUntil = this.server.getTick() + 100;
 
         this.server.sendRecipeList(this);
         this.getAdventureSettings().update();
@@ -1455,6 +1476,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     }
                     this.inAirTicks = 0;
                     this.highestPosition = this.y;
+                } else if (this.airGraceUntil > this.server.getTick() || !this.chunkUnderReady()) {
+                    // Entrando, teleportando ou com o chunk embaixo ainda a caminho: o cliente fica parado no ar
+                    // esperando o mapa (comum em mundos sobre o vazio). Isso nao e voo.
+                    this.inAirTicks = 0;
+                    this.startAirTicks = 5;
                 } else {
                     if (!this.getAdventureSettings().canFly() && this.inAirTicks > 10 && !this.isSleeping() && !this.getDataPropertyBoolean(DATA_NO_AI)) {
                         double expectedVelocity = (-this.getGravity()) / ((double) this.getDrag()) - ((-this.getGravity()) / ((double) this.getDrag())) * Math.exp(-((double) this.getDrag()) * ((double) (this.inAirTicks - this.startAirTicks)));
@@ -1464,8 +1490,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                             if (this.inAirTicks < 100) {
                                 //this.sendSettings();
                                 this.setMotion(new Vector3(0, expectedVelocity, 0));
-                            } else if (this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server")) {
-                                return false;
+                            } else {
+                                // Pairando de verdade: volta para o chao em vez de expulsar (falsos positivos com lag no 0.15).
+                                this.pullToGround();
                             }
                         }
                     }
@@ -3881,6 +3908,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     @Override
     public boolean teleport(Location location, TeleportCause cause) {
+        // O cliente para no ar ate receber o mapa do destino: 5 s sem contar como voo.
+        this.airGraceUntil = this.server.getTick() + 100;
         if (!this.isOnline()) {
             return false;
         }
