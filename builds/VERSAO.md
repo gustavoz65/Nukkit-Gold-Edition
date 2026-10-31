@@ -1,12 +1,17 @@
-# Nukkit Gold 0.4.1
+# Nukkit Gold 0.4.2
 
-Compilado em 30/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
+Compilado em 31/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
 
-- nukkit-gold-0.15.10.jar: core 0.4.1 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+- nukkit-gold-0.15.10.jar: core 0.4.2 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+
+Novidades da 0.4.2 (31/10/2026):
+- Core sem mudancas de codigo alem da versao.
+- Plugins 0.4.2 (28): GoldSkyWars (estilo Hypixel, refeito do plugin de luizgeh sem as falhas de permissao e de caminho de arquivo que davam acesso a configs de outros plugins; 19 kits, baus com garantia e refil, modo insano) e GoldBedWars (ate 8 times, forja, diamante e esmeralda, loja em 7 categorias, melhorias, armadilha, bola de fogo, ovo-ponte).
+- Mapas prontos (ferramentas/arena-builder): sw_ilhas e bw_quatro, com os comandos de configuracao em pontos.txt.
+- Lobby: grama com a cor do bioma gravada no mapa (nao fica mais escura).
 
 Novidades da 0.4.1 (31/10/2026):
 - Fim do kick FLYING_DISABLED falso: ao entrar ou teleportar (principalmente para mundos sobre o vazio, como o lobby), o cliente fica parado no ar esperando o mapa; agora isso nao conta como voo (5 s de tolerancia e so conta com o chunk embaixo ja enviado). Quem paira de verdade e puxado de volta ao chao em vez de ser expulso.
-- Plugins continuam na 0.4.0.
 
 Novidades da 0.4.0 (31/10/2026):
 - Torre: pular e colocar o bloco embaixo dos pes nao some mais o bloco nem empurra o jogador para o lado (teste verificarTorre).
@@ -36,8 +41,8 @@ Novidades da 0.2.0 (30/10/2026):
 SHA-256 em SHA256SUMS.
 
 Pacotes gerados a partir desta pasta (com Java 25 embutido):
-- Windows: bash scripts/build-installer.sh -> build/NukkitGold-Setup-0.4.1.exe
-- Linux x64: bash scripts/build-linux.sh -> build/NukkitGold-0.4.1-linux-x64.tar.gz (extrair e rodar ./start.sh)
+- Windows: bash scripts/build-installer.sh -> build/NukkitGold-Setup-0.4.2.exe
+- Linux x64: bash scripts/build-linux.sh -> build/NukkitGold-0.4.2-linux-x64.tar.gz (extrair e rodar ./start.sh)
 
 Para incluir plugins no pacote, informe a pasta com os .jar: PLUGINS_DIR=/caminho bash scripts/build-installer.sh
 

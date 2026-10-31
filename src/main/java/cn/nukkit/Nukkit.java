@@ -29,7 +29,7 @@ import java.util.Locale;
 public class Nukkit {
 
     public final static String NAME = "Nukkit-Gold";
-    public final static String VERSION = "0.4.1";
+    public final static String VERSION = "0.4.2";
     public final static String API_VERSION = "1.0.0";
     public final static String CODENAME = "Gold";
     public final static String MINECRAFT_VERSION = "v0.15.10 alpha";
