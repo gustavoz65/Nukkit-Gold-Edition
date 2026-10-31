@@ -1,8 +1,12 @@
-# Nukkit Gold 0.4.2
+# Nukkit Gold 0.4.3
 
 Compilado em 31/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda revisão (docs/alteracoes-core.md).
 
-- nukkit-gold-0.15.10.jar: core 0.4.2 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+- nukkit-gold-0.15.10.jar: core 0.4.3 com protocolo 84, base Gold, correcoes de rede e inventario, servicos, isolamento, IA de mobs e spawners.
+
+Novidades da 0.4.3 (31/10/2026):
+- Core sem mudancas de codigo alem da versao.
+- Plugins 0.4.3 (28): /suporte no GoldStaff (triagem pela IA da Groq com a chave no /painel, aviso para a equipe, /atender com chat isolado entre jogador e staff, /finalizar, /avaliar e /tickets metricas por membro da equipe); cargos hierarquicos no GoldPerms (dono, gerente, admin, moderador, ajudante, com tag no chat, /cargo so para quem esta abaixo, /cargos e /equipe); ninguem pune cargo igual ou superior; comando bloqueado liberado por cargo; /limparchat corrigido; chaves de API mascaradas no painel.
 
 Novidades da 0.4.2 (31/10/2026):
 - Core sem mudancas de codigo alem da versao.
@@ -41,8 +45,8 @@ Novidades da 0.2.0 (30/10/2026):
 SHA-256 em SHA256SUMS.
 
 Pacotes gerados a partir desta pasta (com Java 25 embutido):
-- Windows: bash scripts/build-installer.sh -> build/NukkitGold-Setup-0.4.2.exe
-- Linux x64: bash scripts/build-linux.sh -> build/NukkitGold-0.4.2-linux-x64.tar.gz (extrair e rodar ./start.sh)
+- Windows: bash scripts/build-installer.sh -> build/NukkitGold-Setup-0.4.3.exe
+- Linux x64: bash scripts/build-linux.sh -> build/NukkitGold-0.4.3-linux-x64.tar.gz (extrair e rodar ./start.sh)
 
 Para incluir plugins no pacote, informe a pasta com os .jar: PLUGINS_DIR=/caminho bash scripts/build-installer.sh
 
