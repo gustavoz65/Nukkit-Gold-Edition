@@ -26,6 +26,10 @@ public class LoginPacket extends DataPacket {
     public UUID clientUUID;
     public long clientId;
     public String identityPublicKey;
+    /** Quantos tokens vieram na cadeia (1 = sem conta Xbox; 3 = autenticado na Xbox Live). */
+    public int chainLength;
+    /** XUID da conta Xbox, vazio quando o cliente entrou sem conta. */
+    public String xuid = "";
     public String serverAddress;
 
     public Skin skin;
@@ -73,6 +77,7 @@ public class LoginPacket extends DataPacket {
             throw new IllegalArgumentException("Cadeia de login invalida.");
         }
         List<String> chains = map.get("chain");
+        this.chainLength = chains.size();
         for (String c : chains) {
             JsonObject chainMap = decodeToken(c);
             if (chainMap == null) continue;
@@ -80,6 +85,10 @@ public class LoginPacket extends DataPacket {
                 JsonObject extra = chainMap.get("extraData").getAsJsonObject();
                 if (extra.has("displayName")) this.username = extra.get("displayName").getAsString();
                 if (extra.has("identity")) this.clientUUID = UUID.fromString(extra.get("identity").getAsString());
+                if (extra.has("XUID") && extra.get("XUID").isJsonPrimitive()) {
+                    String x = extra.get("XUID").getAsString();
+                    if (x.matches("\\d{1,20}")) this.xuid = x;
+                }
             }
             if (chainMap.has("identityPublicKey"))
                 this.identityPublicKey = chainMap.get("identityPublicKey").getAsString();
@@ -101,6 +110,9 @@ public class LoginPacket extends DataPacket {
                 this.clientData.put(e.getKey(), v.length() > 256 ? v.substring(0, 256) : v);
             }
         }
+        // Dados da cadeia, gravados depois dos do cliente: o cliente nao consegue sobrescrever estas chaves.
+        this.clientData.put("Gold.ChainLength", String.valueOf(this.chainLength));
+        this.clientData.put("Gold.XUID", this.xuid);
     }
 
     private JsonObject decodeToken(String token) {
