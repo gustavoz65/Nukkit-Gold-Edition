@@ -6,7 +6,7 @@ Compilado em 31/10/2026, no Linux com JDK 21 e alvo Java 8, depois da segunda re
 
 Novidades da 0.4.3 (31/10/2026):
 - Core sem mudancas de codigo alem da versao.
-- Plugins 0.4.3 (28): /suporte no GoldStaff (triagem pela IA da Groq com a chave no /painel, aviso para a equipe, /atender com chat isolado entre jogador e staff, /finalizar, /avaliar e /tickets metricas por membro da equipe); cargos hierarquicos no GoldPerms (dono, gerente, admin, moderador, ajudante, com tag no chat, /cargo so para quem esta abaixo, /cargos e /equipe); ninguem pune cargo igual ou superior; comando bloqueado liberado por cargo; /limparchat corrigido; chaves de API mascaradas no painel.
+- Plugins 0.4.3 (29): GoldComandos novo (comandos liberados ou bloqueados por zona de mundos, /help so com o que o jogador pode usar ali, boas-vindas na primeira visita, itens da hotbar que executam comandos, OP so pelo console ou de IP autorizado); /suporte no GoldStaff (triagem pela IA da Groq com a chave no /painel, prompt enxuto e modelo pequeno para gastar poucos tokens, aviso para a equipe, /atender com chat isolado entre jogador e staff, /finalizar, /avaliar e /tickets metricas por membro da equipe); cargos hierarquicos no GoldPerms (dono, gerente, admin, moderador, ajudante, com tag no chat, /cargo so para quem esta abaixo, /cargos e /equipe); ninguem pune cargo igual ou superior; comando bloqueado liberado por cargo; /limparchat corrigido; chaves de API mascaradas no painel.
 
 Novidades da 0.4.2 (31/10/2026):
 - Core sem mudancas de codigo alem da versao.
