@@ -40,7 +40,12 @@ public class RegionLoader extends BaseRegionLoader {
         }
 
         Integer[] table = this.locationTable.get(index);
-        this.randomAccessFile.seek(table[0] << 12);
+        long position = (long) table[0] << 12;
+        if (position + 5 > this.randomAccessFile.length()) {
+            this.dropCorruptChunk(index, x, z, "fora do arquivo");
+            return null;
+        }
+        this.randomAccessFile.seek(position);
         int length = this.randomAccessFile.readInt();
         byte compression = this.randomAccessFile.readByte();
         if (length <= 0 || length >= MAX_SECTOR_LENGTH) {
@@ -64,7 +69,12 @@ public class RegionLoader extends BaseRegionLoader {
         }
 
         byte[] data = new byte[length - 1];
-        this.randomAccessFile.read(data);
+        try {
+            this.randomAccessFile.readFully(data);
+        } catch (java.io.EOFException e) {
+            this.dropCorruptChunk(index, x, z, "cortado");
+            return null;
+        }
         Chunk chunk = this.unserializeChunk(data);
         if (chunk != null) {
             return chunk;

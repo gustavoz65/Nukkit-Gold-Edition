@@ -33,7 +33,7 @@ public class Flat extends Generator {
 
     private final List<Populator> populators = new ArrayList<>();
 
-    private int[][] structure;
+    private volatile int[][] structure;
 
     private final Map<String, Object> options;
 
@@ -41,7 +41,6 @@ public class Flat extends Generator {
 
     private String preset;
 
-    private boolean init = false;
 
     private int biome;
 
@@ -91,8 +90,9 @@ public class Flat extends Generator {
             int version = Integer.valueOf(presetArray[0]);
             String blocks = presetArray.length > 1 ? presetArray[1] : "";
             this.biome = presetArray.length > 2 ? Integer.valueOf(presetArray[2]) : 1;
-            String options = presetArray.length > 3 ? presetArray[1] : "";
-            this.structure = new int[256][];
+            // Nukkit original lia presetArray[1] aqui: as opcoes do preset nunca eram aplicadas.
+            String options = presetArray.length > 3 ? presetArray[3] : "";
+            int[][] structure = new int[256][];
             int y = 0;
             for (String block : blocks.split(",")) {
                 int id, meta = 0, cnt = 1;
@@ -118,12 +118,12 @@ public class Flat extends Generator {
                     y = 0xFF;
                 }
                 for (; cY < y; ++cY) {
-                    this.structure[cY] = new int[]{id, meta};
+                    structure[cY] = new int[]{id, meta};
                 }
             }
-            this.floorLevel = y;
+            int floor = y;
             for (; y <= 0xFF; ++y) {
-                this.structure[y] = new int[]{0, 0};
+                structure[y] = new int[]{0, 0};
             }
             for (String option : options.split(",")) {
                 if (Pattern.matches("^[0-9a-z_]+$", option)) {
@@ -139,9 +139,11 @@ public class Flat extends Generator {
                     this.options.put(name, map);
                 }
             }
+            // So publica a estrutura pronta: outra thread nunca ve camadas pela metade.
+            this.floorLevel = floor;
+            this.structure = structure;
         } catch (Exception e) {
-            Server.getInstance().getLogger().error("error while parsing the preset", e);
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("preset invalido: " + preset, e);
         }
     }
 
@@ -153,12 +155,21 @@ public class Flat extends Generator {
 
     @Override
     public void generateChunk(int chunkX, int chunkZ) {
-        if (!this.init) {
-            init = true;
-            if (this.options.containsKey("preset") && !"".equals(this.options.get("preset"))) {
-                this.parsePreset((String) this.options.get("preset"), chunkX, chunkZ);
-            } else {
-                this.parsePreset(this.preset, chunkX, chunkZ);
+        // Antes, o "ja montei" era marcado antes de montar: um preset com erro deixava a estrutura vazia para sempre e
+        // todo chunk novo do mundo dava NullPointerException (jogador caia por timeout). Agora monta uma vez, com trava,
+        // e um preset invalido vira o padrao com aviso no console.
+        if (this.structure == null) {
+            synchronized (this) {
+                if (this.structure == null) {
+                    Object option = this.options.get("preset");
+                    String preset = option instanceof String && !((String) option).isEmpty() ? (String) option : this.preset;
+                    try {
+                        this.parsePreset(preset, chunkX, chunkZ);
+                    } catch (RuntimeException e) {
+                        Server.getInstance().getLogger().warning("Mundo plano com preset invalido (" + preset + "): usando o padrao 2;7,2x3,2;1;");
+                        this.parsePreset("2;7,2x3,2;1;", chunkX, chunkZ);
+                    }
+                }
             }
         }
         FullChunk chunk = this.level.getChunk(chunkX, chunkZ);
